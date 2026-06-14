@@ -343,10 +343,10 @@ function spawnPop(g,x,y,big){ const n=big?14:8, cols=['#ff7043','#ff8a65','#ffab
 function spawnPick(g,x,y){ for(let i=0;i<10;i++) g.particles.push(part(x,y,THEME.pickup,3)); }
 function addPopup(g,x,y,text,color,size){ g.popups.push({x,y,text,color,size,vy:-70,life:0.9}); }
 function comboColor(c){ return c<6?'#ff9800':c<10?'#f4511e':c<16?'#d500f9':'#aa00ff'; }
-// 벽돌 숫자(hp) → 색: 낮으면 연한 살구, 높으면 진한 빨강
-function brickColor(hp){
-  const t=Math.max(0,Math.min(1,(hp-1)/24));
-  const r=Math.round(255+(211-255)*t), g=Math.round(205+(45-205)*t), b=Math.round(150+(45-150)*t);
+// 벽돌 색 = 현재 스테이지 기준 상대값: 스테이지 숫자(최대)가 제일 빨강, 낮을수록 연하게
+function brickColor(hp,stage){
+  const t=Math.max(0,Math.min(1, hp/Math.max(1,stage)));
+  const r=Math.round(255+(211-255)*t), g=Math.round(214+(45-214)*t), b=Math.round(180+(45-180)*t);
   return `rgb(${r},${g},${b})`;
 }
 
@@ -459,7 +459,7 @@ function render(){
     // 벽돌 — 숫자 높을수록 진한 빨강, 낮을수록 연하게
     for(const b of g.bricks){ if(b.dead)continue;
       const r=brickRect(b), sx=b.shake>0?(Math.random()-0.5)*4*b.shake:0;
-      ctx.fillStyle=brickColor(b.hp);
+      ctx.fillStyle=brickColor(b.hp,g.stage);
       ctx.strokeStyle='rgba(150,40,20,.35)'; ctx.lineWidth=1.5;
       roundRect(r.x+sx,r.y,r.w,r.h,7); ctx.fill(); ctx.stroke();
       ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
