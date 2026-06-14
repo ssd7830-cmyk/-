@@ -187,7 +187,8 @@ function spawnTopRow(g){
   if(empties.length===0){ const c=Math.floor(Math.random()*CFG.COLS);
     g.bricks=g.bricks.filter(b=>!(b.row===0&&b.col===c)); empties=[c]; }
   const c=empties[Math.floor(Math.random()*empties.length)];
-  g.pickups.push({col:c,row:0,taken:false,amount:Math.random()<0.25?2:1});
+  const amount=(g.stage===1)?2:(Math.random()<0.25?2:1);  // 1스테이지는 +2
+  g.pickups.push({col:c,row:0,taken:false,amount});
 }
 
 function startRun(){
@@ -199,14 +200,8 @@ function startRun(){
   g.combo=0; g.maxCombo=0; g.slowDone=false;
   g.bulk=false; g.bulkedThisTurn=false; g.bulkCutin=0;
   g.shake=0; g.hitstop=0; g.timeScale=1; g.launchX=CFG.W/2;
-  // 시작 시 3줄 (전부 stage1 → 숫자 1)
-  for(let i=0;i<3;i++){ for(const b of g.bricks) b.row++; for(const p of g.pickups) p.row++; spawnTopRow(g); }
-  // 1스테이지 +2 보장
-  if(!g.pickups.some(p=>p.amount>=2)){
-    if(g.pickups.length) g.pickups[0].amount=2;
-    else { outer: for(let r=0;r<4;r++) for(let c=0;c<CFG.COLS;c++)
-      if(!g.bricks.some(b=>b.row===r&&b.col===c)){ g.pickups.push({col:c,row:r,taken:false,amount:2}); break outer; } }
-  }
+  // 스테이지 1: 한 줄로 시작 (하미 픽업 1개 같이)
+  spawnTopRow(g);
   g.state='aiming';
   hideOverlay();
 }
