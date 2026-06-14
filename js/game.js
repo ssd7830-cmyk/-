@@ -12,11 +12,15 @@ const hintEl=document.getElementById('hint');
 // ---- 캔버스 고해상도(레티나) 맞춤 : 표시크기 × 픽셀비율로 버퍼 키워서 선명하게 ----
 let RS=1;   // 논리좌표(540×655) → 실제 픽셀 배율
 function fitCanvas(){
-  const dpr=Math.min(window.devicePixelRatio||1,3);
+  const dpr=window.devicePixelRatio||1;
   const rect=cv.getBoundingClientRect();
   if(!rect.width) return;
-  const w=Math.round(rect.width*dpr), h=Math.round(rect.height*dpr);
-  if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; }   // 표시크기와 버퍼 불일치할 때만 갱신
+  // 화면에 실제 박히는 픽셀 밀도. 단, 모니터/창 크기에 휘둘리지 않게 2~3배로 고정
+  // → dpr=1인 PC도 2배 슈퍼샘플링으로 선명, 큰 모니터도 3배에서 멈춰 렉 방지
+  let q=rect.width*dpr/CFG.W;
+  q=Math.max(2,Math.min(q,3));
+  const w=Math.round(CFG.W*q), h=Math.round(CFG.H*q);   // 버퍼는 항상 540:750 비율(왜곡 X), CSS가 화면에 맞춰 늘림
+  if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; }
   RS=cv.width/CFG.W;
 }
 
