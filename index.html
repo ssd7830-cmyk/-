@@ -310,15 +310,16 @@ function damageBrick(g,b,dmg,hx,hy){
 const EFFECTS = [
   { key:'bulk',  label:'벌크업',  emoji:'💪', color:'#ff9800', apply(g){ g.bulk=true; } },
   { key:'pierce',label:'관통',    emoji:'⚡', color:'#42a5f5', apply(g){ g.pierce=true; } },
-  { key:'row',   label:'줄 파괴', emoji:'💥', color:'#ef5350', apply(g){ destroyBottomRow(g); } },
+  { key:'rand',  label:'랜덤파괴', emoji:'💥', color:'#ef5350', apply(g){ destroyRandomBricks(g,10); } },
   { key:'mult',  label:'증식',    emoji:'✨', color:'#ab47bc', apply(g){ duplicateBalls(g); } },
   { key:'power', label:'강타 ×3', emoji:'🎯', color:'#26a69a', apply(g){ g.dmgMult=3; } },
   { key:'bonus', label:'하미 +5', emoji:'💰', color:'#66bb6a', apply(g){ g.ballCount+=5; } },
 ];
-function destroyBottomRow(g){
-  let maxRow=-1; for(const b of g.bricks){ if(!b.dead&&b.row>maxRow)maxRow=b.row; }
-  for(const b of g.bricks){ if(!b.dead&&b.row===maxRow){ b.dead=true; g.cleared++;
-    spawnPop(g,colX(b.col)+COLW/2,rowY(b.row)+ROWH/2,true); } }
+function destroyRandomBricks(g,n){
+  const alive=g.bricks.filter(b=>!b.dead);
+  for(let k=alive.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); const t=alive[k];alive[k]=alive[j];alive[j]=t; }
+  for(let k=0;k<Math.min(n,alive.length);k++){ const b=alive[k]; b.dead=true; g.cleared++;
+    spawnPop(g,colX(b.col)+COLW/2,rowY(b.row)+ROWH/2,true); }
   g.shake=16;
 }
 function duplicateBalls(g){
@@ -573,10 +574,13 @@ function drawRoulette(g){
     ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,rad,a0,a1); ctx.closePath();
     ctx.fillStyle=EFFECTS[i].color; ctx.fill();
     ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=2; ctx.stroke();
-    // 라벨(이모지) — 칸 중앙
-    ctx.save(); ctx.rotate(i*seg); ctx.translate(rad*0.62,0); ctx.rotate(-i*seg-rot);
-    ctx.font='30px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(EFFECTS[i].emoji,0,0); ctx.restore();
+    // 이모지 + 설명 텍스트 — 칸 중앙(항상 똑바로)
+    ctx.save(); ctx.rotate(i*seg); ctx.translate(rad*0.64,0); ctx.rotate(-i*seg-rot);
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font='26px sans-serif'; ctx.fillText(EFFECTS[i].emoji,0,-12);
+    ctx.fillStyle='#fff'; ctx.font='900 14px sans-serif';
+    ctx.fillText(EFFECTS[i].label,0,12);
+    ctx.restore();
   }
   ctx.rotate(-rot);
   // 가운데 하미
