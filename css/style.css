@@ -6,10 +6,10 @@ html,body {
   user-select:none; touch-action:none;
 }
 #wrap {
-  position:relative; aspect-ratio:540/960;
+  position:relative; aspect-ratio:540/750;
   /* 폰: 주소창 포함 100vh 말고 실제 보이는 높이(dvh) 기준 → PC랑 동일 비율, 안 잘림 */
-  width:min(100vw, calc(100dvh * 540 / 960));
-  height:min(100dvh, calc(100vw * 960 / 540));
+  width:min(100vw, calc(100dvh * 540 / 750));
+  height:min(100dvh, calc(100vw * 750 / 540));
   box-shadow:0 0 60px rgba(0,0,0,.6);
 }
 canvas { display:block; width:100%; height:100%; background:#fff8e1; border-radius:2px; }
