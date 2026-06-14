@@ -104,7 +104,10 @@ function onUp(e){ if(!dragging||!game)return; e.preventDefault(); dragging=false
   const dir=aimDir(game); game.aim=null; if(!dir)return; launch(game,dir); }
 function aimDir(g){ if(!g.aim)return null;
   let dx=g.aim.x-g.launchX, dy=g.aim.y-CFG.LAUNCH_Y; const len=Math.hypot(dx,dy);
-  if(len<8)return null; dx/=len; dy/=len; if(dy>-0.12)return null; return {x:dx,y:dy}; }
+  if(len<8)return null; dx/=len; dy/=len;
+  // 너무 수평/아래로 내려도 사라지지 않고 최소 각도에서 멈춤
+  if(dy>-0.12){ dy=-0.12; const k=Math.sqrt(Math.max(0,1-dy*dy)); dx=(dx<0?-1:1)*k; }
+  return {x:dx,y:dy}; }
 function launch(g,dir){ SND.shoot(); g.state='shooting'; g.fireTimer=0;
   g.fireDir=dir; g.turnTime=0; g.nextLaunchX=null; g.turnsUsed++;
   g.turnContacts=0; g.cleared=0; g.bulk=false; g.pierce=false; g.warp=false; g.dmgMult=1;
