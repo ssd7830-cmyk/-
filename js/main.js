@@ -1,7 +1,6 @@
 // ---- 루프 ----
 let last=0;
 function loop(now){ let dt=(now-last)/1000; last=now; if(!isFinite(dt)||dt>0.05)dt=0.05;
-  fitCanvas();   // 매 프레임 표시크기 추적 → 버퍼 항상 선명(불일치할 때만 실제 갱신)
   update(dt); render(); requestAnimationFrame(loop); }
 
 // ---- 오버레이 / 버튼 ----
@@ -38,4 +37,8 @@ game=newGame();
 if(game.best>0 && hintEl) hintEl.innerHTML='🏆 최고 STAGE '+game.best+' · 콤보 쌓으면 🎰 룰렛!';
 fitCanvas();
 window.addEventListener('resize',fitCanvas);
+// 캔버스 표시크기 바뀔 때만 버퍼 재설정(선명 유지, 매 프레임 reflow 안 함 → 렉 X)
+if(window.ResizeObserver){ new ResizeObserver(fitCanvas).observe(cv); }
+// 첫 로드 레이아웃 잡힌 뒤 한번 더(초기 흐림 방지)
+window.addEventListener('load',fitCanvas);
 requestAnimationFrame(loop);
