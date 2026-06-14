@@ -20,7 +20,7 @@ const CFG = {
 };
 const COLW=(CFG.W-CFG.GAP*(CFG.COLS+1))/CFG.COLS;
 const SPAWN_ROW=1;   // 맨 윗줄(row 0)은 항상 비우고, 한 칸 아래에서 새 줄 생성(예고 버퍼)
-const ROWH=64;   // 벽돌 높이 (크게 = 화면 꽉, 스와이프 느낌. 가로 COLW≈70이라 거의 정사각)
+const ROWH=46;   // 벽돌 높이 (얇고 넓은 직사각형 = 스와이프 느낌. 가로 COLW≈70)
 const HEADER_H=104;  // 상단 헤더 높이(정보 영역)
 const colX=c=>CFG.GAP+c*(COLW+CFG.GAP);
 const rowY=r=>CFG.TOP+r*(ROWH+CFG.GAP);
