@@ -172,7 +172,7 @@ function newGame(){
 // 맨 윗줄(row 0) 새로 생성 — 벽돌 숫자(HP) = 현재 스테이지
 function spawnTopRow(g){
   const hp=g.stage;
-  const fill=Math.min(0.5+g.stage*0.012,0.9);   // 스테이지 오를수록 빽빽 → 난이도↑
+  const fill=Math.min(0.38+g.stage*0.006,0.68);  // 천천히 빽빽 (너무 안 빡세게)
   let placed=0;
   for(let c=0;c<CFG.COLS;c++){
     if(Math.random()<fill){
@@ -188,7 +188,7 @@ function spawnTopRow(g){
   if(empties.length===0){ const c=Math.floor(Math.random()*CFG.COLS);
     g.bricks=g.bricks.filter(b=>!(b.row===0&&b.col===c)); empties=[c]; }
   const c=empties[Math.floor(Math.random()*empties.length)];
-  const amount=(g.stage===1)?2:(Math.random()<0.18?2:1);  // 1스테이지는 +2
+  const amount=(g.stage===1)?2:(Math.random()<0.32?2:1);  // 1스테이지는 +2
   g.pickups.push({col:c,row:0,taken:false,amount});
 }
 
