@@ -333,9 +333,10 @@ function update(dt){
   else if(g.hitstop>0){ g.hitstop-=dt; }
   else if(g.state==='shooting'){ stepShooting(g,dt*g.timeScale*gameSpeed); }
   else if(g.state==='gather'){ stepGather(g,dt*gameSpeed); }
-  for(const p of g.particles){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=620*dt; p.life-=dt; if(p.sq)p.rot+=p.vr*dt; }
+  for(const p of g.particles){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=620*dt; p.life-=dt; if(p.sq)p.rot+=p.vr*dt;
+    if(p.y>CFG.DEADLINE) p.life=0; }   // 데드라인 아래로는 안 쌓이게 즉시 소멸(바닥 도배 방지)
   g.particles=g.particles.filter(p=>p.life>0);
-  if(g.particles.length>260) g.particles.splice(0,g.particles.length-260);   // 총량 상한(화면 도배 방지)
+  if(g.particles.length>200) g.particles.splice(0,g.particles.length-200);   // 총량 상한
   for(const p of g.popups){ p.y+=p.vy*dt; p.vy*=0.92; p.life-=dt; }
   g.popups=g.popups.filter(p=>p.life>0);
   for(const b of g.bricks){ if(b.shake>0) b.shake=Math.max(0,b.shake-dt*6); if(b.hit>0) b.hit=Math.max(0,b.hit-dt*6); }
