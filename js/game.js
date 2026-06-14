@@ -26,6 +26,11 @@ let hamiReady=false;
 HAMI_IMG.onload=()=>{ hamiReady=true; };
 HAMI_IMG.src='hami.png';
 const HAMI_AR=266/273;
+// 관통용 역도 하미 (바벨로 다 밀어버림)
+const PIERCE_IMG=new Image();
+let pierceReady=false;
+PIERCE_IMG.onload=()=>{ pierceReady=true; };
+PIERCE_IMG.src='하미_역도.png';
 function drawHami(x,y,r){
   if(hamiReady){ const h=r*CFG.BALL_DRAW, w=h*HAMI_AR; ctx.drawImage(HAMI_IMG,x-w/2,y-h/2,w,h); return; }
   ctx.fillStyle='#fffdf7'; ctx.strokeStyle='#ffcc80'; ctx.lineWidth=Math.max(1,r*0.18);
@@ -42,13 +47,13 @@ function newGame(){
            launchX:CFG.W/2, aim:null, fireDir:null, fireQueue:0, fireTimer:0,
            turnTime:0, nextLaunchX:null, turnsUsed:0, par:1,
            combo:0, comboPunch:0, comboHitT:9, turnContacts:0, cleared:0, nextMilestone:1500, slowDone:false,
-           bulk:false, pierce:false, dmgMult:1, roulette:null, pendingEffect:null, fireGap:CFG.FIRE_GAP,
+           bulk:false, pierce:false, warp:false, dmgMult:1, roulette:null, pendingEffect:null, fireGap:CFG.FIRE_GAP,
            shake:0, hitstop:0, timeScale:1 };
 }
 
 // 맨 윗줄(row 0) 새로 생성 — 벽돌 숫자(HP) = 현재 스테이지
 function spawnTopRow(g){
-  const hp=g.stage;
+  const hp=Math.max(1,Math.round(g.stage*0.85));   // HP를 스테이지보다 약간 완만하게 → 잘하면 뚫림(시뮬 튜닝)
   const fill=Math.min(0.42+g.stage*0.006,0.72);  // 벽돌 개수 살짝 올림(난이도↑)
   let placed=0;
   for(let c=0;c<CFG.COLS;c++){
@@ -76,7 +81,7 @@ function startRun(){
   g.balls=[]; g.landed=[]; g.bricks=[]; g.pickups=[]; g.particles=[]; g.popups=[];
   g.aim=null; g.nextLaunchX=null; g.fireQueue=0; g.turnTime=0;
   g.combo=0; g.comboPunch=0; g.comboHitT=9; g.turnContacts=0; g.cleared=0; g.nextMilestone=1500; g.slowDone=false;
-  g.bulk=false; g.pierce=false; g.dmgMult=1; g.roulette=null; g.pendingEffect=null;
+  g.bulk=false; g.pierce=false; g.warp=false; g.dmgMult=1; g.roulette=null; g.pendingEffect=null;
   g.shake=0; g.hitstop=0; g.timeScale=1; g.launchX=CFG.W/2;
   // 스테이지 1: 한 줄로 시작 (하미 픽업 1개 같이)
   spawnTopRow(g);
@@ -92,6 +97,7 @@ function canvasPos(evt){
 }
 let dragging=false;
 function onDown(e){ if(!game||game.state!=='aiming')return; e.preventDefault();
+  SND.init();   // 폰: 첫 터치에서 오디오 깨움
   const p=canvasPos(e); if(p.y<CFG.TOP)return; dragging=true; game.aim=p; }
 function onMove(e){ if(!dragging||!game)return; e.preventDefault(); game.aim=canvasPos(e); }
 function onUp(e){ if(!dragging||!game)return; e.preventDefault(); dragging=false;
@@ -101,13 +107,12 @@ function aimDir(g){ if(!g.aim)return null;
   if(len<8)return null; dx/=len; dy/=len; if(dy>-0.12)return null; return {x:dx,y:dy}; }
 function launch(g,dir){ SND.shoot(); g.state='shooting'; g.fireTimer=0;
   g.fireDir=dir; g.turnTime=0; g.nextLaunchX=null; g.turnsUsed++;
-  g.turnContacts=0; g.cleared=0; g.bulk=false; g.pierce=false; g.dmgMult=1;
+  g.turnContacts=0; g.cleared=0; g.bulk=false; g.pierce=false; g.warp=false; g.dmgMult=1;
   g.slowDone=false; g.fleeing=false;   // 콤보(g.combo)는 유지 — 턴 넘어가도 안 지움
   // 룰렛 효과 적용 (이번 턴)
   let mult=1;
   if(g.pendingEffect){ const k=g.pendingEffect.key, e=g.pendingEffect; g.pendingEffect=null;
-    if(k==='bulk')g.bulk=true; else if(k==='pierce')g.pierce=true; else if(k==='power')g.dmgMult=2;
-    else if(k==='bonus')g.ballCount+=1; else if(k==='rand')destroyRandomBricks(g,5); else if(k==='mult')mult=2;
+    if(k==='bulk')g.bulk=true; else if(k==='pierce')g.pierce=true; else if(k==='warp')g.warp=true; else if(k==='mult')mult=2;
     addPopup(g,g.launchX,CFG.LAUNCH_Y-34,e.emoji+' '+e.label+'!',e.color,26);
   }
   g.fireQueue=Math.min(1200,g.ballCount*mult);
@@ -134,18 +139,28 @@ function reflectOff(ball,b,R){ const r=brickRect(b);
   else { const d=Math.sqrt(d2); nx/=d; ny/=d; const dot=ball.vx*nx+ball.vy*ny;
     ball.vx-=2*dot*nx; ball.vy-=2*dot*ny; const push=R-d; ball.x+=nx*push; ball.y+=ny*push; } }
 
-function fireOne(g){ g.balls.push({x:g.launchX,y:CFG.LAUNCH_Y,vx:g.fireDir.x*CFG.BALL_SPEED,vy:g.fireDir.y*CFG.BALL_SPEED,active:true,trail:[]}); }
+function fireOne(g){ g.balls.push({x:g.launchX,y:CFG.LAUNCH_Y,vx:g.fireDir.x*CFG.BALL_SPEED,vy:g.fireDir.y*CFG.BALL_SPEED,active:true,trail:[],wb:0}); }
 
 function stepBall(g,ball,dt){
-  const R=g.bulk?CFG.BALL_R*CFG.BULK_R:CFG.BALL_R;
+  const R=g.bulk?CFG.BALL_R*CFG.BULK_R:(g.pierce?CFG.BALL_R*CFG.PIERCE_R:CFG.BALL_R);
   const dist=Math.hypot(ball.vx,ball.vy)*dt;
   const steps=Math.max(1,Math.ceil(dist/(R*0.8)));
   const h=dt/steps;
   for(let s=0;s<steps&&ball.active;s++){
     ball.x+=ball.vx*h; ball.y+=ball.vy*h;
-    if(ball.x<R){ball.x=R;ball.vx=Math.abs(ball.vx);}
-    if(ball.x>CFG.W-R){ball.x=CFG.W-R;ball.vx=-Math.abs(ball.vx);}
-    if(ball.y<HEADER_H+R){ball.y=HEADER_H+R;ball.vy=Math.abs(ball.vy);}   // 윗벽=헤더선
+    // 좌우 벽: 워프=반대편 통과 / 일반=반사 / 관통=벽 1번만 튕기고 2번째 벽 닿으면 회수
+    if(g.warp){
+      if(ball.x<0) ball.x+=CFG.W; else if(ball.x>CFG.W) ball.x-=CFG.W;
+    } else {
+      let wall=false;
+      if(ball.x<R){ball.x=R;ball.vx=Math.abs(ball.vx);wall=true;}
+      else if(ball.x>CFG.W-R){ball.x=CFG.W-R;ball.vx=-Math.abs(ball.vx);wall=true;}
+      if(wall && g.pierce && (++ball.wb)>1){ ball.active=false; if(g.nextLaunchX===null)g.nextLaunchX=ball.x;
+        g.landed.push({x:clamp(ball.x,R,CFG.W-R),y:CFG.LAUNCH_Y}); return; }
+    }
+    if(ball.y<HEADER_H+R){ ball.y=HEADER_H+R; ball.vy=Math.abs(ball.vy);   // 윗벽=헤더선
+      if(g.pierce && (++ball.wb)>1){ ball.active=false; if(g.nextLaunchX===null)g.nextLaunchX=ball.x;
+        g.landed.push({x:clamp(ball.x,R,CFG.W-R),y:CFG.LAUNCH_Y}); return; } }
     if(ball.y>CFG.LAUNCH_Y){ ball.active=false; if(g.nextLaunchX===null)g.nextLaunchX=ball.x;
       g.landed.push({x:clamp(ball.x,R,CFG.W-R),y:CFG.LAUNCH_Y}); return; }   // 떨어진 자리에 깔아둠
     if(!g.fleeing){   // 탈출모드면 벽돌 통과
@@ -202,14 +217,12 @@ function damageBrick(g,b,dmg,hx,hy){
 }
 
 // ===== 룰렛 벌크업 (다음 턴 적용) =====
-// 전부 "이번 턴만" 효과 (영구 보상 없음 = 눈덩이 방지). bonus만 소소한 영구 +1.
+// 전부 "이번 턴만" 효과 (영구 보상 없음 = 눈덩이 방지)
 const EFFECTS = [
-  { key:'bulk',  label:'벌크업',  desc:'공 2배뎀',  emoji:'💪', color:'#ff9800' },
-  { key:'pierce',label:'관통',    desc:'벽돌 뚫음', emoji:'⚡', color:'#42a5f5' },
-  { key:'rand',  label:'폭파',    desc:'5개 제거',  emoji:'💥', color:'#ef5350' },
-  { key:'mult',  label:'증식',    desc:'공 2배',   emoji:'✨', color:'#ab47bc' },
-  { key:'power', label:'강타',    desc:'데미지 ×2', emoji:'🎯', color:'#26a69a' },
-  { key:'bonus', label:'하미 +1', desc:'공 영구+1', emoji:'💰', color:'#66bb6a' },
+  { key:'mult',  label:'증식',   desc:'하미 2배!',            emoji:'✨', color:'#ab47bc' },
+  { key:'bulk',  label:'벌크업', desc:'커지고 뎀 2배',        emoji:'💪', color:'#ff9800' },
+  { key:'warp',  label:'워프',   desc:'좌우 벽 통과!',        emoji:'🌀', color:'#42a5f5' },
+  { key:'pierce',label:'관통',   desc:'다 뚫음 (벽은 1번만 튕김)', emoji:'🗡️', color:'#26a69a' },
 ];
 const RL = { INTRO:1.1, SPIN:3.2, RESULT:1.6 };  // 단계별 시간
 function destroyRandomBricks(g,n){
@@ -266,7 +279,7 @@ function endTurn(g){
   const cleared=g.cleared;   // 이번 턴에 깬 벽돌 수
   // 이번 턴 하나도 못 맞췄으면 콤보 초기화
   if(g.turnContacts===0){ g.combo=0; g.nextMilestone=1500; }
-  g.bulk=false; g.pierce=false; g.dmgMult=1;
+  g.bulk=false; g.pierce=false; g.warp=false; g.dmgMult=1;
   // 한 칸 내림
   for(const b of g.bricks) b.row++;
   for(const p of g.pickups) p.row++;

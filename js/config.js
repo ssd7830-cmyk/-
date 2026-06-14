@@ -14,6 +14,7 @@ const CFG = {
   MAX_FIRE_TIME:2.4,  // 공 많아도 이 시간까진 간격 유지(너무 안 뭉치게)
   WIN_STAGE:100,
   BULK_R:1.55,        // 벌크 시 공 크기 배율
+  PIERCE_R:2.0,       // 관통 시 공 크기 배율(크게 = 다 밀어버림)
   ROW_FILL:0.7,       // 새 줄 벽돌 생길 확률
   PICKUP_CHANCE:0.55, // 새 줄에 픽업 들어갈 확률
 };

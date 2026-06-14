@@ -2,12 +2,23 @@
 function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y);
   ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 
+// 관통 효과: 역도 하미가 바벨로 다 밀어버림 (크게, 똑바로)
+function drawPierceHami(g,b,br){
+  if(pierceReady){
+    const ar=(PIERCE_IMG.naturalWidth/PIERCE_IMG.naturalHeight)||1;
+    const h=br*CFG.BALL_DRAW, w=h*ar;
+    ctx.drawImage(PIERCE_IMG,b.x-w/2,b.y-h/2,w,h);
+  } else drawHami(b.x,b.y,br);
+}
+
 function render(){
   const g=game;
+  // 버퍼 전체를 먼저 지우고 배경칠(비율 어긋나도 바닥 잔상 안 생기게)
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.fillStyle=THEME.bg; ctx.fillRect(0,0,cv.width,cv.height);
   ctx.setTransform(RS,0,0,RS,0,0);   // 고해상도 버퍼에 논리좌표로 그림
   ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
-  ctx.clearRect(0,0,CFG.W,CFG.H);
-  ctx.fillStyle=THEME.bg; ctx.fillRect(0,0,CFG.W,CFG.H);
   ctx.save();
   if(g&&g.shake>0) ctx.translate((Math.random()-0.5)*g.shake,(Math.random()-0.5)*g.shake);
 
@@ -52,7 +63,7 @@ function render(){
       ctx.strokeStyle='rgba(229,57,53,.9)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(last.x,last.y,11,0,6.2832); ctx.stroke();
     }}
     // 공 트레일(잔상) → 역동적. 공 많으면 끔(폰 렉 방지, 공무리 자체가 화려함)
-    const br=g.bulk?CFG.BALL_R*CFG.BULK_R:CFG.BALL_R;
+    const br=g.bulk?CFG.BALL_R*CFG.BULK_R:(g.pierce?CFG.BALL_R*CFG.PIERCE_R:CFG.BALL_R);
     if(g.balls.length<=60){
       ctx.lineCap='round';
       for(const b of g.balls){ const tr=b.trail; if(!tr||tr.length<2)continue;
@@ -64,12 +75,18 @@ function render(){
         }
       }
     }
-    // 공
-    for(const b of g.balls) drawHami(b.x,b.y,br);
+    // 공 — 관통이면 칼 든 하미(휘적휘적), 아니면 일반
+    for(const b of g.balls){ if(g.pierce) drawPierceHami(g,b,br); else drawHami(b.x,b.y,br); }
     // 바닥에 떨어져 모이는 하미들
     if(g.landed) for(const l of g.landed) drawHami(l.x,l.y,br);
-    // 발사대 하미
-    if(g.state==='aiming') drawHami(g.launchX,CFG.LAUNCH_Y,13);
+    // 발사대 하미 — 관통 대기 중이면 역도 하미를 실제 날아갈 크기로 세워둠
+    if(g.state==='aiming'){
+      if(g.pendingEffect && g.pendingEffect.key==='pierce' && pierceReady){
+        const ar=(PIERCE_IMG.naturalWidth/PIERCE_IMG.naturalHeight)||1;
+        const h=CFG.BALL_R*CFG.PIERCE_R*CFG.BALL_DRAW, w=h*ar;
+        ctx.drawImage(PIERCE_IMG,g.launchX-w/2,CFG.LAUNCH_Y-h/2,w,h);
+      } else drawHami(g.launchX,CFG.LAUNCH_Y,13);
+    }
     // 팝업
     for(const p of g.popups){ ctx.globalAlpha=Math.max(0,Math.min(1,p.life*1.6));
       ctx.fillStyle=p.color; ctx.font=`900 ${p.size}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
@@ -110,6 +127,17 @@ function render(){
       ctx.fillText('룰렛까지 '+near,cx,84);
       ctx.globalAlpha=1;
     }
+  }
+
+  // 발사 전: 이번에 쓸 룰렛 효과 안내 배너 (친절 설명)
+  if(g && g.state==='aiming' && g.pendingEffect){
+    const e=g.pendingEffect, cx=CFG.W/2, cy=CFG.LAUNCH_Y-44;
+    const txt=e.emoji+' '+e.label+' — '+e.desc;
+    ctx.font='bold 18px sans-serif';
+    const w=ctx.measureText(txt).width+30;
+    ctx.fillStyle=e.color; ctx.globalAlpha=0.95; roundRect(cx-w/2,cy-19,w,38,19); ctx.fill();
+    ctx.globalAlpha=1; ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=2; roundRect(cx-w/2,cy-19,w,38,19); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(txt,cx,cy);
   }
 
   // 룰렛 (화면 정지)
@@ -153,7 +181,8 @@ function drawRoulette(g){
     // 이모지 + 라벨 (항상 똑바로)
     ctx.save(); ctx.rotate(i*seg); ctx.translate(rad*0.66,0); ctx.rotate(-i*seg-rot);
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.font='30px sans-serif'; ctx.fillText(EFFECTS[i].emoji,0,-16);
+    if(EFFECTS[i].key==='pierce' && pierceReady){ const s=36, ar=(PIERCE_IMG.naturalWidth/PIERCE_IMG.naturalHeight)||1; ctx.drawImage(PIERCE_IMG,-s*ar/2,-16-s/2,s*ar,s); }
+    else { ctx.font='30px sans-serif'; ctx.fillText(EFFECTS[i].emoji,0,-16); }
     ctx.fillStyle='#fff'; ctx.font='900 15px sans-serif'; ctx.fillText(EFFECTS[i].label,0,8);
     ctx.font='11px sans-serif'; ctx.globalAlpha=0.9; ctx.fillText(EFFECTS[i].desc,0,24); ctx.globalAlpha=1;
     ctx.restore();
