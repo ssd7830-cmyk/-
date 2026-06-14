@@ -1,6 +1,7 @@
 // ---- 루프 ----
 let last=0;
 function loop(now){ let dt=(now-last)/1000; last=now; if(!isFinite(dt)||dt>0.05)dt=0.05;
+  fitCanvas();   // 매 프레임 표시크기 추적 → 버퍼 항상 선명(불일치할 때만 실제 갱신)
   update(dt); render(); requestAnimationFrame(loop); }
 
 // ---- 오버레이 / 버튼 ----

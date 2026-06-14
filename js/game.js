@@ -15,8 +15,8 @@ function fitCanvas(){
   const dpr=Math.min(window.devicePixelRatio||1,3);
   const rect=cv.getBoundingClientRect();
   if(!rect.width) return;
-  cv.width=Math.round(rect.width*dpr);
-  cv.height=Math.round(rect.height*dpr);
+  const w=Math.round(rect.width*dpr), h=Math.round(rect.height*dpr);
+  if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; }   // 표시크기와 버퍼 불일치할 때만 갱신
   RS=cv.width/CFG.W;
 }
 
