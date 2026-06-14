@@ -159,12 +159,19 @@ function stepBall(g,ball,dt){
         const dmg=(g.bulk?2:1)*(g.dmgMult||1);
         if(g.pierce){ for(const b of hitList) damageBrick(g,b,dmg+1,ball.x,ball.y); }   // 관통: 안 튕기고 뚫음
         else {
-          // 가장 가까운 벽돌로만 반사, 닿은 벽돌은 전부 깎음 → 이음새 명중 시 동시타
-          let nb=hitList[0], nd=Infinity;
+          // 가장 가까운 벽돌 + 충돌점 찾기 (닿은 벽돌은 전부 깎음 → 이음새 명중 시 동시타)
+          let nb=hitList[0], nd=Infinity, ncx=ball.x, ncy=ball.y;
           for(const b of hitList){ const r=brickRect(b);
             const ccx=clamp(ball.x,r.x,r.x+r.w),ccy=clamp(ball.y,r.y,r.y+r.h);
-            const d=(ball.x-ccx)*(ball.x-ccx)+(ball.y-ccy)*(ball.y-ccy); if(d<nd){nd=d;nb=b;} }
-          reflectOff(ball,nb,R);
+            const d=(ball.x-ccx)*(ball.x-ccx)+(ball.y-ccy)*(ball.y-ccy); if(d<nd){nd=d;nb=b;ncx=ccx;ncy=ccy;} }
+          // 충돌 법선(벽돌표면→공) 기준 입사각 판정
+          let nx=ball.x-ncx, ny=ball.y-ncy; const nl=Math.hypot(nx,ny), sp=Math.hypot(ball.vx,ball.vy)||1;
+          // 비스듬히 스침(거의 평행) → 반사 안 하고 방향 유지하며 통과, 데미지만
+          if(nl>1e-3 && (ball.vx*nx+ball.vy*ny)/(nl*sp) > -0.35){
+            nx/=nl; ny/=nl; const push=R-nl; if(push>0){ ball.x+=nx*push; ball.y+=ny*push; }
+          } else {
+            reflectOff(ball,nb,R);   // 정면이면 정상 반사
+          }
           for(const b of hitList) damageBrick(g,b,dmg,ball.x,ball.y);
         }
       }
@@ -330,11 +337,6 @@ function stepShooting(g,dt){
       const sp=Math.hypot(b.vx,b.vy)||1, t=CFG.BALL_SPEED*boost;
       b.vx=b.vx/sp*t; b.vy=b.vy/sp*t;                 // 속도 부스트
     }
-  }
-  // 하드 캡: 너무 오래면 벽돌 통과시켜 바닥으로 빼냄 (최대 턴 길이 보장)
-  if(g.fireQueue===0 && g.turnTime>CFG.MAX_TURN){
-    g.fleeing=true;
-    for(const b of g.balls){ if(!b.active)continue; b.vx*=0.4; b.vy=Math.abs(b.vy)+CFG.BALL_SPEED; }
   }
   for(const b of g.balls) if(b.active){ stepBall(g,b,dt);
     if(b.active){ b.trail.push({x:b.x,y:b.y}); if(b.trail.length>60) b.trail.shift(); } }

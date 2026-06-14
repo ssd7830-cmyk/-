@@ -22,9 +22,9 @@ function render(){
       const r=brickRect(b), sx=b.shake>0?(Math.random()-0.5)*4*b.shake:0, hit=b.hit||0;
       ctx.fillStyle=brickColor(b.hp,g.stage);
       ctx.strokeStyle='rgba(150,40,20,.35)'; ctx.lineWidth=1.5;
-      roundRect(r.x+sx,r.y,r.w,r.h,7); ctx.fill(); ctx.stroke();
+      ctx.fillRect(r.x+sx,r.y,r.w,r.h); ctx.strokeRect(r.x+sx,r.y,r.w,r.h);   // 완전 네모
       // 맞은 순간 흰 플래시
-      if(hit>0){ ctx.globalAlpha=hit*0.5; ctx.fillStyle='#fff'; roundRect(r.x+sx,r.y,r.w,r.h,7); ctx.fill(); ctx.globalAlpha=1; }
+      if(hit>0){ ctx.globalAlpha=hit*0.5; ctx.fillStyle='#fff'; ctx.fillRect(r.x+sx,r.y,r.w,r.h); ctx.globalAlpha=1; }
       // 숫자 — 맞을 때 살짝 커졌다 줄어듦(펀치)
       ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.font=`bold ${Math.round(r.h*0.46*(1+hit*0.5))}px sans-serif`;

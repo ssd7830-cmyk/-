@@ -22,10 +22,6 @@ muteBtn.addEventListener('click',()=>{ SND.init(); volIdx=(volIdx+1)%VOL.length;
   SND.master=VOL[volIdx].m; SND.muted=(SND.master===0);
   if(SND.bus) SND.bus.gain.value=SND.master; muteBtn.textContent=VOL[volIdx].icon; });
 
-const speedBtn=document.getElementById('speed');
-speedBtn.addEventListener('click',()=>{ gameSpeed=gameSpeed===1?1.5:1;
-  speedBtn.textContent=gameSpeed===1.5?'1.5×':'1×'; speedBtn.classList.toggle('on',gameSpeed===1.5); });
-
 game=newGame();
 if(game.best>0 && hintEl) hintEl.innerHTML='🏆 최고 STAGE '+game.best+' · 콤보 쌓으면 🎰 룰렛!';
 fitCanvas();

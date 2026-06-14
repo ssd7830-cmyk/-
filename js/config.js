@@ -9,9 +9,9 @@ const CFG = {
   W:540, H:655, COLS:7, GAP:6,
   TOP:115, DEADLINE:605, LAUNCH_Y:605,   // 벽돌 9칸 내려오면 데드라인, 발사대=데드라인 선 위에서 시작
   BALL_R:12, BALL_DRAW:2.5, BALL_SPEED:600,   // 느리게 → 숫자 깎이는 게 보이고 손맛↑ / 하미 작게(안 겹치게)
-  FIRE_GAP:0.04, HURRY_AFTER:4.0, MAX_TURN:7, MIN_VY:130,
+  FIRE_GAP:0.07, HURRY_AFTER:10, MAX_TURN:7, MIN_VY:130,   // 10초 지나면 점점 빨라짐(회수). 벽통과 빼내기는 제거
   SKILL_BONUS:6,      // 한 턴에 이만큼 깰 때마다 보너스 하미 +1 (실력 보상)
-  MAX_FIRE_TIME:1.6,  // 공 전체 발사에 걸리는 최대 시간(초)
+  MAX_FIRE_TIME:2.4,  // 공 많아도 이 시간까진 간격 유지(너무 안 뭉치게)
   WIN_STAGE:100,
   BULK_R:1.55,        // 벌크 시 공 크기 배율
   ROW_FILL:0.7,       // 새 줄 벽돌 생길 확률
