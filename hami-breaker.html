@@ -81,7 +81,7 @@ const CFG = {
   PICKUP_CHANCE:0.55, // 새 줄에 픽업 들어갈 확률
 };
 const COLW=(CFG.W-CFG.GAP*(CFG.COLS+1))/CFG.COLS;
-const ROWH=56;   // 벽돌 높이(원작처럼 거의 정사각, 살짝 넓은 네모)
+const ROWH=32;   // 벽돌 높이(얇은 직사각형)
 const colX=c=>CFG.GAP+c*(COLW+CFG.GAP);
 const rowY=r=>CFG.TOP+r*(ROWH+CFG.GAP);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
