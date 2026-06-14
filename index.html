@@ -81,7 +81,7 @@ const CFG = {
   PICKUP_CHANCE:0.55, // 새 줄에 픽업 들어갈 확률
 };
 const COLW=(CFG.W-CFG.GAP*(CFG.COLS+1))/CFG.COLS;
-const ROWH=46;   // 벽돌 높이(얇게, 스와이프 벽돌깨기 느낌)
+const ROWH=56;   // 벽돌 높이(원작처럼 거의 정사각, 살짝 넓은 네모)
 const colX=c=>CFG.GAP+c*(COLW+CFG.GAP);
 const rowY=r=>CFG.TOP+r*(ROWH+CFG.GAP);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -172,9 +172,10 @@ function newGame(){
 // 맨 윗줄(row 0) 새로 생성 — 벽돌 숫자(HP) = 현재 스테이지
 function spawnTopRow(g){
   const hp=g.stage;
+  const fill=Math.min(0.5+g.stage*0.012,0.9);   // 스테이지 오를수록 빽빽 → 난이도↑
   let placed=0;
   for(let c=0;c<CFG.COLS;c++){
-    if(Math.random()<CFG.ROW_FILL){
+    if(Math.random()<fill){
       g.bricks.push({col:c,row:0,hp,maxHp:hp,type:'normal',shake:0,dead:false});
       placed++;
     }
@@ -187,7 +188,7 @@ function spawnTopRow(g){
   if(empties.length===0){ const c=Math.floor(Math.random()*CFG.COLS);
     g.bricks=g.bricks.filter(b=>!(b.row===0&&b.col===c)); empties=[c]; }
   const c=empties[Math.floor(Math.random()*empties.length)];
-  const amount=(g.stage===1)?2:(Math.random()<0.25?2:1);  // 1스테이지는 +2
+  const amount=(g.stage===1)?2:(Math.random()<0.18?2:1);  // 1스테이지는 +2
   g.pickups.push({col:c,row:0,taken:false,amount});
 }
 
