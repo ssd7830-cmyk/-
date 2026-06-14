@@ -53,20 +53,20 @@ function spawnTopRow(g){
   let placed=0;
   for(let c=0;c<CFG.COLS;c++){
     if(Math.random()<fill){
-      g.bricks.push({col:c,row:0,hp,maxHp:hp,type:'normal',shake:0,dead:false});
+      g.bricks.push({col:c,row:SPAWN_ROW,hp,maxHp:hp,type:'normal',shake:0,dead:false});
       placed++;
     }
   }
   if(placed===0){ const c=Math.floor(Math.random()*CFG.COLS);
-    g.bricks.push({col:c,row:0,hp,maxHp:hp,type:'normal',shake:0,dead:false}); }
+    g.bricks.push({col:c,row:SPAWN_ROW,hp,maxHp:hp,type:'normal',shake:0,dead:false}); }
   // 매 줄마다 하미 픽업 1개 무조건 (+1, 가끔 +2)
   let empties=[];
-  for(let c=0;c<CFG.COLS;c++) if(!g.bricks.some(b=>b.row===0&&b.col===c)) empties.push(c);
+  for(let c=0;c<CFG.COLS;c++) if(!g.bricks.some(b=>b.row===SPAWN_ROW&&b.col===c)) empties.push(c);
   if(empties.length===0){ const c=Math.floor(Math.random()*CFG.COLS);
-    g.bricks=g.bricks.filter(b=>!(b.row===0&&b.col===c)); empties=[c]; }
+    g.bricks=g.bricks.filter(b=>!(b.row===SPAWN_ROW&&b.col===c)); empties=[c]; }
   const c=empties[Math.floor(Math.random()*empties.length)];
   const amount=1;  // 픽업은 전부 +1
-  g.pickups.push({col:c,row:0,taken:false,amount});
+  g.pickups.push({col:c,row:SPAWN_ROW,taken:false,amount});
 }
 
 function startRun(){
@@ -148,15 +148,25 @@ function stepBall(g,ball,dt){
     if(ball.y<HEADER_H+R){ball.y=HEADER_H+R;ball.vy=Math.abs(ball.vy);}   // 윗벽=헤더선
     if(ball.y>CFG.LAUNCH_Y){ ball.active=false; if(g.nextLaunchX===null)g.nextLaunchX=ball.x;
       g.landed.push({x:clamp(ball.x,R,CFG.W-R),y:CFG.LAUNCH_Y}); return; }   // 떨어진 자리에 깔아둠
-    if(!g.fleeing) for(const b of g.bricks){ if(b.dead)continue;   // 탈출모드면 벽돌 통과
-      if(circleBrick(ball.x,ball.y,R,b)){
+    if(!g.fleeing){   // 탈출모드면 벽돌 통과
+      let hitList=null;
+      for(const b of g.bricks){ if(b.dead)continue;
+        if(circleBrick(ball.x,ball.y,R,b)){ (hitList||(hitList=[])).push(b); } }
+      if(hitList){
         g.combo++; g.turnContacts++;                 // 콤보 = 부딪힌 횟수(누적)
         g.comboPunch=1; g.comboHitT=0;                // 리듬게임식 펀치
         if(g.combo>=g.nextMilestone) triggerRoulette(g);
         const dmg=(g.bulk?2:1)*(g.dmgMult||1);
-        if(g.pierce){ damageBrick(g,b,dmg+1,ball.x,ball.y); }   // 관통: 안 튕기고 뚫음
-        else { reflectOff(ball,b,R); damageBrick(g,b,dmg,ball.x,ball.y); }
-        break;
+        if(g.pierce){ for(const b of hitList) damageBrick(g,b,dmg+1,ball.x,ball.y); }   // 관통: 안 튕기고 뚫음
+        else {
+          // 가장 가까운 벽돌로만 반사, 닿은 벽돌은 전부 깎음 → 이음새 명중 시 동시타
+          let nb=hitList[0], nd=Infinity;
+          for(const b of hitList){ const r=brickRect(b);
+            const ccx=clamp(ball.x,r.x,r.x+r.w),ccy=clamp(ball.y,r.y,r.y+r.h);
+            const d=(ball.x-ccx)*(ball.x-ccx)+(ball.y-ccy)*(ball.y-ccy); if(d<nd){nd=d;nb=b;} }
+          reflectOff(ball,nb,R);
+          for(const b of hitList) damageBrick(g,b,dmg,ball.x,ball.y);
+        }
       }
     }
     for(const p of g.pickups){ if(p.taken)continue;
@@ -174,7 +184,7 @@ function stepBall(g,ball,dt){
 }
 
 function damageBrick(g,b,dmg,hx,hy){
-  b.hp-=dmg; b.shake=1; spawnHit(g,hx,hy);
+  b.hp-=dmg; b.shake=1; b.hit=1; spawnHit(g,hx,hy);   // b.hit = 맞은 순간 펀치/플래시
   if(b.hp<=0&&!b.dead){
     b.dead=true; g.cleared++;                 // 이번 턴 부순 수(실력보너스용)
     spawnPop(g,colX(b.col)+COLW/2,rowY(b.row)+ROWH/2,false);
@@ -223,12 +233,13 @@ function updateRoulette(g,dt){
 }
 
 // ---- 파티클 / 팝업 ----
-function part(x,y,c,s,sq){ const a=Math.random()*6.28, v=70+Math.random()*230;
-  return {x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-60,life:0.45+Math.random()*0.3,c,s:s+Math.random()*2,
+function part(x,y,c,s,sq,lifeK){ const a=Math.random()*6.28, v=70+Math.random()*230;
+  return {x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-60,life:(0.45+Math.random()*0.3)*(lifeK||1),c,s:s+Math.random()*2,
           sq:!!sq,rot:Math.random()*6.28,vr:(Math.random()-0.5)*14}; }
 function spawnHit(g,x,y){ SND.hit(); for(let i=0;i<2;i++) g.particles.push(part(x,y,'#ffb300',2)); }
-function spawnPop(g,x,y,big){ const n=big?14:8, cols=['#ff7043','#ff8a65','#ffab40','#f4511e'];
-  for(let i=0;i<n;i++) g.particles.push(part(x,y,cols[i%cols.length],big?4:3,true)); }
+// 벽돌 깨질 때: 파편 더 많이 + 오래 살아 아래로 우수수 떨어짐
+function spawnPop(g,x,y,big){ const n=big?18:12, cols=['#ff7043','#ff8a65','#ffab40','#f4511e','#e65100'];
+  for(let i=0;i<n;i++) g.particles.push(part(x,y,cols[i%cols.length],big?4:3,true,2.4)); }
 function spawnPick(g,x,y){ for(let i=0;i<10;i++) g.particles.push(part(x,y,THEME.pickup,3)); }
 function addPopup(g,x,y,text,color,size){ g.popups.push({x,y,text,color,size,vy:-70,life:0.9}); }
 function comboColor(c){ return c<6?'#ff9800':c<10?'#f4511e':c<16?'#d500f9':'#aa00ff'; }
@@ -306,7 +317,7 @@ function update(dt){
   g.particles=g.particles.filter(p=>p.life>0);
   for(const p of g.popups){ p.y+=p.vy*dt; p.vy*=0.92; p.life-=dt; }
   g.popups=g.popups.filter(p=>p.life>0);
-  for(const b of g.bricks) if(b.shake>0) b.shake=Math.max(0,b.shake-dt*6);
+  for(const b of g.bricks){ if(b.shake>0) b.shake=Math.max(0,b.shake-dt*6); if(b.hit>0) b.hit=Math.max(0,b.hit-dt*6); }
 }
 function stepShooting(g,dt){
   g.turnTime+=dt;

@@ -19,12 +19,16 @@ function render(){
   if(g){
     // 벽돌 — 숫자 높을수록 진한 빨강, 낮을수록 연하게
     for(const b of g.bricks){ if(b.dead)continue;
-      const r=brickRect(b), sx=b.shake>0?(Math.random()-0.5)*4*b.shake:0;
+      const r=brickRect(b), sx=b.shake>0?(Math.random()-0.5)*4*b.shake:0, hit=b.hit||0;
       ctx.fillStyle=brickColor(b.hp,g.stage);
       ctx.strokeStyle='rgba(150,40,20,.35)'; ctx.lineWidth=1.5;
       roundRect(r.x+sx,r.y,r.w,r.h,7); ctx.fill(); ctx.stroke();
+      // 맞은 순간 흰 플래시
+      if(hit>0){ ctx.globalAlpha=hit*0.5; ctx.fillStyle='#fff'; roundRect(r.x+sx,r.y,r.w,r.h,7); ctx.fill(); ctx.globalAlpha=1; }
+      // 숫자 — 맞을 때 살짝 커졌다 줄어듦(펀치)
       ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.font=`bold ${Math.floor(r.h*0.46)}px sans-serif`; ctx.fillText(b.hp,r.x+r.w/2+sx,r.y+r.h/2+1);
+      ctx.font=`bold ${Math.round(r.h*0.46*(1+hit*0.5))}px sans-serif`;
+      ctx.fillText(b.hp,r.x+r.w/2+sx,r.y+r.h/2+1);
     }
     // 픽업
     for(const p of g.pickups){ if(p.taken)continue;
