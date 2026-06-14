@@ -188,7 +188,7 @@ function spawnTopRow(g){
   if(empties.length===0){ const c=Math.floor(Math.random()*CFG.COLS);
     g.bricks=g.bricks.filter(b=>!(b.row===0&&b.col===c)); empties=[c]; }
   const c=empties[Math.floor(Math.random()*empties.length)];
-  const amount=(g.stage===1)?2:(Math.random()<0.32?2:1);  // 1스테이지는 +2
+  const amount=1;  // 픽업은 전부 +1
   g.pickups.push({col:c,row:0,taken:false,amount});
 }
 
