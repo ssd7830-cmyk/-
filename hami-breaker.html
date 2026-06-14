@@ -73,7 +73,7 @@ const CFG = {
   W:540, H:960, COLS:7, GAP:6,
   TOP:120, DEADLINE:780, LAUNCH_Y:885,
   BALL_R:12, BALL_DRAW:3.2, BALL_SPEED:880,
-  FIRE_GAP:0.04, TURN_TIMEOUT:8, MIN_VY:130,
+  FIRE_GAP:0.04, HURRY_AFTER:4.0, MIN_VY:130,
   WIN_STAGE:100,
   BULK_COMBO:12,      // 콤보 이만큼 쌓이면 벌크업 발동
   BULK_R:1.55,        // 벌크 시 공 크기 배율
@@ -370,9 +370,17 @@ function update(dt){
 function stepShooting(g,dt){
   g.turnTime+=dt;
   if(g.fireQueue>0){ g.fireTimer-=dt; while(g.fireQueue>0&&g.fireTimer<=0){ fireOne(g); g.fireQueue--; g.fireTimer+=CFG.FIRE_GAP; } }
+  // 오래 튕기면: 점점 빨라지고 아래로 당겨서 자연스럽게 회수 (텔레포트 X)
+  if(g.fireQueue===0 && g.turnTime>CFG.HURRY_AFTER){
+    const boost=1+Math.min(2.2,(g.turnTime-CFG.HURRY_AFTER)*0.7);
+    for(const b of g.balls){ if(!b.active)continue;
+      b.vy+=260*dt;                                   // 아래로 당김
+      const sp=Math.hypot(b.vx,b.vy)||1, t=CFG.BALL_SPEED*boost;
+      b.vx=b.vx/sp*t; b.vy=b.vy/sp*t;                 // 속도 부스트
+    }
+  }
   for(const b of g.balls) if(b.active){ stepBall(g,b,dt);
     if(b.active){ b.trail.push({x:b.x,y:b.y}); if(b.trail.length>20) b.trail.shift(); } }
-  if(g.turnTime>CFG.TURN_TIMEOUT){ for(const b of g.balls) if(b.active){ if(g.nextLaunchX===null)g.nextLaunchX=b.x; b.active=false; } }
   g.balls=g.balls.filter(b=>b.active);
   if(g.fireQueue===0&&g.balls.length===0) endTurn(g);
 }
