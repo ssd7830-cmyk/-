@@ -71,7 +71,7 @@
 // ---- CONFIG : 재미 튜닝은 여기 ----
 const CFG = {
   W:540, H:960, COLS:7, GAP:6,
-  TOP:120, DEADLINE:780, LAUNCH_Y:885,
+  TOP:115, DEADLINE:600, LAUNCH_Y:885,   // 데드라인 위로(약 9칸에서 죽음=긴장감)
   BALL_R:12, BALL_DRAW:3.2, BALL_SPEED:880,
   FIRE_GAP:0.04, HURRY_AFTER:4.0, MAX_TURN:7, MIN_VY:130,
   SKILL_BONUS:6,      // 한 턴에 이만큼 깰 때마다 보너스 하미 +1 (실력 보상)
@@ -82,7 +82,7 @@ const CFG = {
   PICKUP_CHANCE:0.55, // 새 줄에 픽업 들어갈 확률
 };
 const COLW=(CFG.W-CFG.GAP*(CFG.COLS+1))/CFG.COLS;
-const ROWH=32;   // 벽돌 높이(얇은 직사각형)
+const ROWH=48;   // 벽돌 높이(직사각형)
 const HEADER_H=100;  // 상단 헤더 높이(정보 영역)
 const colX=c=>CFG.GAP+c*(COLW+CFG.GAP);
 const rowY=r=>CFG.TOP+r*(ROWH+CFG.GAP);
