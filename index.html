@@ -276,7 +276,7 @@ function stepBall(g,ball,dt){
     ball.x+=ball.vx*h; ball.y+=ball.vy*h;
     if(ball.x<R){ball.x=R;ball.vx=Math.abs(ball.vx);}
     if(ball.x>CFG.W-R){ball.x=CFG.W-R;ball.vx=-Math.abs(ball.vx);}
-    if(ball.y<R){ball.y=R;ball.vy=Math.abs(ball.vy);}
+    if(ball.y<HEADER_H+R){ball.y=HEADER_H+R;ball.vy=Math.abs(ball.vy);}   // 윗벽=헤더선
     if(ball.y>CFG.LAUNCH_Y){ ball.active=false; if(g.nextLaunchX===null)g.nextLaunchX=ball.x; return; }
     if(!g.fleeing) for(const b of g.bricks){ if(b.dead)continue;   // 탈출모드면 벽돌 통과
       if(circleBrick(ball.x,ball.y,R,b)){
@@ -409,7 +409,7 @@ function predictPath(g,dir){
   for(let i=0;i<1000;i++){
     x+=vx*dtp; y+=vy*dtp;
     if(x<R){x=R;vx=-vx;bounces++;} if(x>CFG.W-R){x=CFG.W-R;vx=-vx;bounces++;}
-    if(y<R){y=R;vy=-vy;bounces++;}
+    if(y<HEADER_H+R){y=HEADER_H+R;vy=-vy;bounces++;}
     let hit=false;
     for(const b of g.bricks){ if(b.dead)continue; if(circleBrick(x,y,R,b)){hit=true;break;} }
     if(i%4===0) pts.push({x,y});
