@@ -175,20 +175,19 @@ function spawnTopRow(g){
   let placed=0;
   for(let c=0;c<CFG.COLS;c++){
     if(Math.random()<CFG.ROW_FILL){
-      const bomb=Math.random()<0.07;
-      g.bricks.push({col:c,row:0,hp:bomb?1:hp,maxHp:bomb?1:hp,type:bomb?'bomb':'normal',shake:0,dead:false});
+      g.bricks.push({col:c,row:0,hp,maxHp:hp,type:'normal',shake:0,dead:false});
       placed++;
     }
   }
   if(placed===0){ const c=Math.floor(Math.random()*CFG.COLS);
     g.bricks.push({col:c,row:0,hp,maxHp:hp,type:'normal',shake:0,dead:false}); }
-  // 빈 칸에 가끔 픽업
-  const empties=[];
+  // 매 줄마다 하미 픽업 1개 무조건 (+1, 가끔 +2)
+  let empties=[];
   for(let c=0;c<CFG.COLS;c++) if(!g.bricks.some(b=>b.row===0&&b.col===c)) empties.push(c);
-  if(empties.length && Math.random()<CFG.PICKUP_CHANCE){
-    const c=empties[Math.floor(Math.random()*empties.length)];
-    g.pickups.push({col:c,row:0,taken:false,amount:Math.random()<0.3?2:1});
-  }
+  if(empties.length===0){ const c=Math.floor(Math.random()*CFG.COLS);
+    g.bricks=g.bricks.filter(b=>!(b.row===0&&b.col===c)); empties=[c]; }
+  const c=empties[Math.floor(Math.random()*empties.length)];
+  g.pickups.push({col:c,row:0,taken:false,amount:Math.random()<0.25?2:1});
 }
 
 function startRun(){
@@ -324,8 +323,8 @@ function endTurn(g){
   for(const p of g.pickups) p.row++;
   // 데드라인 닿으면 게임오버
   if(g.bricks.some(b=>rowY(b.row)+ROWH>=CFG.DEADLINE)){ gameOver(g); return; }
-  // 다음 스테이지: 하미 +1, 새 윗줄(숫자=스테이지)
-  g.stage++; g.score=g.stage; g.ballCount++;
+  // 다음 스테이지: 새 윗줄(숫자=스테이지) + 하미 픽업 같이 내려옴
+  g.stage++; g.score=g.stage;
   if(g.stage>g.best){ g.best=g.stage; localStorage.setItem('hami_best',g.best); }
   spawnTopRow(g);
   g.state='aiming';
