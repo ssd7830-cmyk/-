@@ -6,8 +6,8 @@ html,body {
   user-select:none; touch-action:none;
 }
 #wrap {
-  position:relative; aspect-ratio:540/655;
-  width:min(100vw, calc(100vh * 540 / 655));   /* 가로·세로 둘 다 안 넘게, 비율 고정 */
+  position:relative; aspect-ratio:540/960;
+  width:min(100vw, calc(100vh * 540 / 960));   /* 가로·세로 둘 다 안 넘게, 비율 고정 */
   box-shadow:0 0 60px rgba(0,0,0,.6);
 }
 canvas { display:block; width:100%; height:100%; background:#fff8e1; border-radius:2px; }

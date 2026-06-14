@@ -16,11 +16,14 @@ function hideOverlay(){ overlay.classList.remove('show'); }
 btn.addEventListener('click',()=>{ SND.init(); if(overlayAction) overlayAction(); });
 
 const muteBtn=document.getElementById('mute');
-const VOL=[{m:0,icon:'🔇'},{m:1.8,icon:'🔈'},{m:3.2,icon:'🔉'},{m:4.5,icon:'🔊'}];
-let volIdx=3;
-muteBtn.addEventListener('click',()=>{ SND.init(); volIdx=(volIdx+1)%VOL.length;
-  SND.master=VOL[volIdx].m; SND.muted=(SND.master===0);
-  if(SND.bus) SND.bus.gain.value=SND.master; muteBtn.textContent=VOL[volIdx].icon; });
+let soundOn=true;
+function applySound(){ SND.muted=!soundOn; SND.master=soundOn?4.5:0;
+  if(SND.bus) SND.bus.gain.value=SND.master; muteBtn.textContent=soundOn?'🔊':'🔇'; }
+muteBtn.addEventListener('click',()=>{ SND.init(); soundOn=!soundOn; applySound(); });
+// 폰: 첫 상호작용에서 오디오 확실히 깨움
+const _unlockAudio=()=>{ SND.init(); applySound(); };
+window.addEventListener('pointerdown',_unlockAudio,{once:true});
+window.addEventListener('touchend',_unlockAudio,{once:true});
 
 // ===== [임시 테스트] 키 1~4 = 해당 룰렛 강제, R = 랜덤 룰렛 (나중에 지울 것) =====
 window.addEventListener('keydown',e=>{

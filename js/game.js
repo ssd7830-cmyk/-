@@ -256,10 +256,10 @@ function updateRoulette(g,dt){
 function part(x,y,c,s,sq,lifeK){ const a=Math.random()*6.28, v=70+Math.random()*230;
   return {x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-60,life:(0.45+Math.random()*0.3)*(lifeK||1),c,s:s+Math.random()*2,
           sq:!!sq,rot:Math.random()*6.28,vr:(Math.random()-0.5)*14}; }
-function spawnHit(g,x,y){ SND.hit(); for(let i=0;i<2;i++) g.particles.push(part(x,y,'#ffb300',2)); }
-// 벽돌 깨질 때: 파편 더 많이 + 오래 살아 아래로 우수수 떨어짐
-function spawnPop(g,x,y,big){ const n=big?18:12, cols=['#ff7043','#ff8a65','#ffab40','#f4511e','#e65100'];
-  for(let i=0;i<n;i++) g.particles.push(part(x,y,cols[i%cols.length],big?4:3,true,2.4)); }
+function spawnHit(g,x,y){ SND.hit(); if(g.particles.length<160) g.particles.push(part(x,y,'#ffb300',2)); }
+// 벽돌 깨질 때: 파편 적당히 + 살짝 길게 떨어짐 (너무 많으면 화면 도배되니 절제)
+function spawnPop(g,x,y,big){ if(g.particles.length>240) return; const n=big?12:7, cols=['#ff7043','#ff8a65','#ffab40','#f4511e','#e65100'];
+  for(let i=0;i<n;i++) g.particles.push(part(x,y,cols[i%cols.length],big?4:3,true,1.5)); }
 function spawnPick(g,x,y){ for(let i=0;i<10;i++) g.particles.push(part(x,y,THEME.pickup,3)); }
 function addPopup(g,x,y,text,color,size){ g.popups.push({x,y,text,color,size,vy:-70,life:0.9}); }
 function comboColor(c){ return c<6?'#ff9800':c<10?'#f4511e':c<16?'#d500f9':'#aa00ff'; }
@@ -335,6 +335,7 @@ function update(dt){
   else if(g.state==='gather'){ stepGather(g,dt*gameSpeed); }
   for(const p of g.particles){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=620*dt; p.life-=dt; if(p.sq)p.rot+=p.vr*dt; }
   g.particles=g.particles.filter(p=>p.life>0);
+  if(g.particles.length>260) g.particles.splice(0,g.particles.length-260);   // 총량 상한(화면 도배 방지)
   for(const p of g.popups){ p.y+=p.vy*dt; p.vy*=0.92; p.life-=dt; }
   g.popups=g.popups.filter(p=>p.life>0);
   for(const b of g.bricks){ if(b.shake>0) b.shake=Math.max(0,b.shake-dt*6); if(b.hit>0) b.hit=Math.max(0,b.hit-dt*6); }
