@@ -74,6 +74,8 @@ const CFG = {
   TOP:120, DEADLINE:780, LAUNCH_Y:885,
   BALL_R:12, BALL_DRAW:3.2, BALL_SPEED:880,
   FIRE_GAP:0.04, HURRY_AFTER:4.0, MAX_TURN:7, MIN_VY:130,
+  SKILL_BONUS:6,      // 한 턴에 이만큼 깰 때마다 보너스 하미 +1 (실력 보상)
+  MAX_FIRE_TIME:1.6,  // 공 전체 발사에 걸리는 최대 시간(초)
   WIN_STAGE:100,
   BULK_COMBO:12,      // 콤보 이만큼 쌓이면 벌크업 발동
   BULK_R:1.55,        // 벌크 시 공 크기 배율
@@ -224,7 +226,9 @@ function aimDir(g){ if(!g.aim)return null;
   if(len<8)return null; dx/=len; dy/=len; if(dy>-0.12)return null; return {x:dx,y:dy}; }
 function launch(g,dir){ SND.shoot(); g.state='shooting'; g.fireQueue=g.ballCount; g.fireTimer=0;
   g.fireDir=dir; g.turnTime=0; g.nextLaunchX=null; g.turnsUsed++;
-  g.combo=0; g.bulkedThisTurn=false; g.bulk=false; g.slowDone=false; g.fleeing=false; }
+  g.combo=0; g.bulkedThisTurn=false; g.bulk=false; g.slowDone=false; g.fleeing=false;
+  // 공 많으면 발사 간격 줄여서 총 발사시간 ~1.6초로 캡
+  g.fireGap=Math.max(0.004, Math.min(CFG.FIRE_GAP, CFG.MAX_FIRE_TIME/g.ballCount)); }
 cv.addEventListener('mousedown',onDown);
 cv.addEventListener('mousemove',onMove);
 window.addEventListener('mouseup',onUp);
@@ -317,6 +321,7 @@ function endTurn(g){
   if(g.nextLaunchX!==null) g.launchX=clamp(g.nextLaunchX,COLW*0.3,CFG.W-COLW*0.3);
   g.bricks=g.bricks.filter(b=>!b.dead);
   g.pickups=g.pickups.filter(p=>!p.taken);
+  const cleared=g.combo;   // 이번 턴에 깬 벽돌 수
   g.bulk=false; g.bulkedThisTurn=false; g.combo=0;
   // 한 칸 내림
   for(const b of g.bricks) b.row++;
@@ -327,6 +332,9 @@ function endTurn(g){
   g.stage++; g.score=g.stage;
   if(g.stage>g.best){ g.best=g.stage; localStorage.setItem('hami_best',g.best); }
   spawnTopRow(g);
+  // 실력 보상: 많이 깰수록 보너스 하미 (스노우볼)
+  const bonus=Math.floor(cleared/CFG.SKILL_BONUS);
+  if(bonus>0){ g.ballCount+=bonus; addPopup(g,g.launchX,CFG.LAUNCH_Y-34,'+'+bonus+' 하미!','#ff6f00',24); }
   g.state='aiming';
 }
 function emitResult(g){
@@ -373,7 +381,7 @@ function update(dt){
 }
 function stepShooting(g,dt){
   g.turnTime+=dt;
-  if(g.fireQueue>0){ g.fireTimer-=dt; while(g.fireQueue>0&&g.fireTimer<=0){ fireOne(g); g.fireQueue--; g.fireTimer+=CFG.FIRE_GAP; } }
+  if(g.fireQueue>0){ g.fireTimer-=dt; while(g.fireQueue>0&&g.fireTimer<=0){ fireOne(g); g.fireQueue--; g.fireTimer+=g.fireGap; } }
   // 오래 튕기면: 점점 빨라지고 아래로 당겨서 자연스럽게 회수 (텔레포트 X)
   if(g.fireQueue===0 && g.turnTime>CFG.HURRY_AFTER){
     const boost=1+Math.min(2.2,(g.turnTime-CFG.HURRY_AFTER)*0.7);
@@ -442,14 +450,16 @@ function render(){
       ctx.globalAlpha=1; const last=pts[pts.length-1];
       ctx.strokeStyle='rgba(229,57,53,.9)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(last.x,last.y,11,0,6.2832); ctx.stroke();
     }}
-    // 공 트레일(잔상) → 역동적
+    // 공 트레일(잔상) → 역동적. 공 많으면 끔(폰 렉 방지, 공무리 자체가 화려함)
     const br=g.bulk?CFG.BALL_R*CFG.BULK_R:CFG.BALL_R;
-    ctx.lineCap='round';
-    for(const b of g.balls){ const tr=b.trail; if(!tr||tr.length<2)continue;
-      for(let i=1;i<tr.length;i++){ const a=i/tr.length;
-        ctx.strokeStyle=g.bulk?`rgba(213,0,249,${a*0.28})`:`rgba(255,140,0,${a*0.22})`;
-        ctx.lineWidth=br*1.6*a;
-        ctx.beginPath(); ctx.moveTo(tr[i-1].x,tr[i-1].y); ctx.lineTo(tr[i].x,tr[i].y); ctx.stroke();
+    if(g.balls.length<=60){
+      ctx.lineCap='round';
+      for(const b of g.balls){ const tr=b.trail; if(!tr||tr.length<2)continue;
+        for(let i=1;i<tr.length;i++){ const a=i/tr.length;
+          ctx.strokeStyle=g.bulk?`rgba(213,0,249,${a*0.28})`:`rgba(255,140,0,${a*0.22})`;
+          ctx.lineWidth=br*1.6*a;
+          ctx.beginPath(); ctx.moveTo(tr[i-1].x,tr[i-1].y); ctx.lineTo(tr[i].x,tr[i].y); ctx.stroke();
+        }
       }
     }
     // 공
