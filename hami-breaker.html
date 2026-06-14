@@ -73,7 +73,7 @@ const CFG = {
   W:540, H:960, COLS:7, GAP:6,
   TOP:120, DEADLINE:780, LAUNCH_Y:885,
   BALL_R:12, BALL_DRAW:3.2, BALL_SPEED:880,
-  FIRE_GAP:0.04, HURRY_AFTER:4.0, MIN_VY:130,
+  FIRE_GAP:0.04, HURRY_AFTER:4.0, MAX_TURN:7, MIN_VY:130,
   WIN_STAGE:100,
   BULK_COMBO:12,      // 콤보 이만큼 쌓이면 벌크업 발동
   BULK_R:1.55,        // 벌크 시 공 크기 배율
@@ -172,7 +172,7 @@ function newGame(){
 // 맨 윗줄(row 0) 새로 생성 — 벽돌 숫자(HP) = 현재 스테이지
 function spawnTopRow(g){
   const hp=g.stage;
-  const fill=Math.min(0.38+g.stage*0.006,0.68);  // 천천히 빽빽 (너무 안 빡세게)
+  const fill=Math.min(0.32+g.stage*0.005,0.6);   // 천천히 빽빽 (난이도 벽 완화)
   let placed=0;
   for(let c=0;c<CFG.COLS;c++){
     if(Math.random()<fill){
@@ -224,7 +224,7 @@ function aimDir(g){ if(!g.aim)return null;
   if(len<8)return null; dx/=len; dy/=len; if(dy>-0.12)return null; return {x:dx,y:dy}; }
 function launch(g,dir){ SND.shoot(); g.state='shooting'; g.fireQueue=g.ballCount; g.fireTimer=0;
   g.fireDir=dir; g.turnTime=0; g.nextLaunchX=null; g.turnsUsed++;
-  g.combo=0; g.bulkedThisTurn=false; g.bulk=false; g.slowDone=false; }
+  g.combo=0; g.bulkedThisTurn=false; g.bulk=false; g.slowDone=false; g.fleeing=false; }
 cv.addEventListener('mousedown',onDown);
 cv.addEventListener('mousemove',onMove);
 window.addEventListener('mouseup',onUp);
@@ -259,7 +259,7 @@ function stepBall(g,ball,dt){
     if(ball.x>CFG.W-R){ball.x=CFG.W-R;ball.vx=-Math.abs(ball.vx);}
     if(ball.y<R){ball.y=R;ball.vy=Math.abs(ball.vy);}
     if(ball.y>CFG.LAUNCH_Y){ ball.active=false; if(g.nextLaunchX===null)g.nextLaunchX=ball.x; return; }
-    for(const b of g.bricks){ if(b.dead)continue;
+    if(!g.fleeing) for(const b of g.bricks){ if(b.dead)continue;   // 탈출모드면 벽돌 통과
       if(circleBrick(ball.x,ball.y,R,b)){
         reflectOff(ball,b,R); damageBrick(g,b,g.bulk?2:1,ball.x,ball.y);  // 벌크=2데미지(튕김 유지)
         break;
@@ -270,8 +270,12 @@ function stepBall(g,ball,dt){
       if(Math.hypot(ball.x-px,ball.y-py)<R+16){ p.taken=true; g.ballCount+=(p.amount||1);
         spawnPick(g,px,py); addPopup(g,px,py,'+'+(p.amount||1),p.amount>=2?'#1b5e20':'#2e7d32',p.amount>=2?28:20); }
     }
-    if(!g.bulk && Math.abs(ball.vy)<CFG.MIN_VY){ ball.vy=(ball.vy<0?-1:1)*CFG.MIN_VY;
-      const k=Math.sqrt(Math.max(0,CFG.BALL_SPEED*CFG.BALL_SPEED-ball.vy*ball.vy)); ball.vx=(ball.vx<0?-1:1)*k; }
+    // 수평 고착 방지 — 단, 회수(hurry) 중엔 끄고 아래로 흘려보냄
+    if(!g.bulk && g.turnTime<=CFG.HURRY_AFTER && Math.abs(ball.vy)<CFG.MIN_VY){
+      ball.vy=(ball.vy<0?-1:1)*CFG.MIN_VY;
+      const sp=Math.hypot(ball.vx,ball.vy)||CFG.BALL_SPEED;
+      const k=Math.sqrt(Math.max(0,sp*sp-ball.vy*ball.vy)); ball.vx=(ball.vx<0?-1:1)*k;
+    }
   }
 }
 
@@ -378,6 +382,11 @@ function stepShooting(g,dt){
       const sp=Math.hypot(b.vx,b.vy)||1, t=CFG.BALL_SPEED*boost;
       b.vx=b.vx/sp*t; b.vy=b.vy/sp*t;                 // 속도 부스트
     }
+  }
+  // 하드 캡: 너무 오래면 벽돌 통과시켜 바닥으로 빼냄 (최대 턴 길이 보장)
+  if(g.fireQueue===0 && g.turnTime>CFG.MAX_TURN){
+    g.fleeing=true;
+    for(const b of g.balls){ if(!b.active)continue; b.vx*=0.4; b.vy=Math.abs(b.vy)+CFG.BALL_SPEED; }
   }
   for(const b of g.balls) if(b.active){ stepBall(g,b,dt);
     if(b.active){ b.trail.push({x:b.x,y:b.y}); if(b.trail.length>20) b.trail.shift(); } }
