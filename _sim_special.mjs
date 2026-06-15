@@ -175,6 +175,8 @@ function endTurn(g){
   spawnTopRow(g);
   const bonus=Math.floor(cleared/(OPTS.skill||CFG.SKILL_BONUS));
   if(bonus>0){ g.ballCount+=bonus; }
+  if(OPTS.capToStage) g.ballCount=Math.min(g.ballCount,g.stage);   // 하미 ≤ 스테이지(상한)
+  if(OPTS.lockToStage) g.ballCount=g.stage;                        // 하미 == 스테이지(완전 고정)
   g.state='aiming';
 }
 
@@ -240,17 +242,15 @@ function run(label,opts,N){
 
 const N=parseInt(process.argv[2]||'400');
 const hp=s=>Math.round(s*(0.85+s*0.004));   // 현행 곡선
-console.log('### 현행 HP곡선 0.85+s*0.004 기준, 특수벽돌 영향 비교 ###');
-run('A. 특수 없음(기준선)', {roulette:true, hpFn:hp, special:false}, N);
-run('B. 균등약점 강철0.18+이동0.14', {roulette:true, hpFn:hp, aimSteel:true}, N);
-// 위(0) 약점 제거: 아래 위주 + 좌우 가끔. weakDist=[상,우,하,좌]
-run('F. 약점=아래위주[0,1,3,1] 강철0.18', {roulette:true, hpFn:hp, aimSteel:true, weakDist:[0,1,3,1]}, N);
-run('G. 약점=아래위주 + 강철HP0.6배', {roulette:true, hpFn:hp, aimSteel:true, weakDist:[0,1,3,1], steelHp:0.6}, N);
-run('H. 약점=아래위주 + HP0.6 + 비율0.10/이동0.10', {roulette:true, hpFn:hp, aimSteel:true, weakDist:[0,1,3,1], steelHp:0.6, steelChance:0.10, moveChance:0.10}, N);
-run('I. 약점=아래60좌우40 + HP0.5 + 비율0.12', {roulette:true, hpFn:hp, aimSteel:true, weakDist:[0,1,2,1], steelHp:0.5, steelChance:0.12, moveChance:0.12}, N);
-console.log('\n### 퍼즐형: 강철HP 고정(약점 찾으면 즉사급) ###');
-run('J. 강철HP=1 즉사 + 약점아래위주 + 비율0.14', {roulette:true, hpFn:hp, aimSteel:true, weakDist:[0,1,3,1], steelHpFlat:1, steelChance:0.14, moveChance:0.12}, N);
-run('K. 강철HP=2 + 약점아래위주 + 비율0.12', {roulette:true, hpFn:hp, aimSteel:true, weakDist:[0,1,3,1], steelHpFlat:2, steelChance:0.12, moveChance:0.12}, N);
-console.log('\n### 양념용: 강철 비율 매우 낮춤 ###');
-run('L. 강철0.06+이동0.10 (양념) 균등약점 HP×1', {roulette:true, hpFn:hp, aimSteel:true, steelChance:0.06, moveChance:0.10}, N);
-run('M. 이동만0.16 (강철 없음)', {roulette:true, hpFn:hp, aimSteel:true, steelChance:0, moveChance:0.16}, N);
+console.log('### 하미 갯수 = 스테이지 묶을 때 진행 가능한가? (현행 HP곡선, 강철0.18+이동0.14) ###');
+const sp={roulette:true, hpFn:hp, aimSteel:true};   // 현 특수벽돌 세팅
+run('① 현행(하미 무제한 = 픽업+보너스로 늘음)', {...sp}, N);
+run('② 하미 ≤ 스테이지 (상한만)', {...sp, capToStage:true}, N);
+run('③ 하미 == 스테이지 (완전 고정)', {...sp, lockToStage:true}, N);
+console.log('\n### 하미==스테이지 고정 시, HP곡선 완화하면? ###');
+run('④ 고정 + HP×0.7 완화', {...sp, lockToStage:true, hpFn:s=>Math.round(s*0.7)}, N);
+run('⑤ 고정 + HP×0.6 완화', {...sp, lockToStage:true, hpFn:s=>Math.round(s*0.6)}, N);
+run('⑥ 고정 + HP×0.5 완화', {...sp, lockToStage:true, hpFn:s=>Math.round(s*0.5)}, N);
+console.log('\n### 참고: 특수벽돌 없이 하미==스테이지 ###');
+run('⑦ 고정 + 특수없음 + HP×0.85', {...sp, special:false, lockToStage:true}, N);
+run('⑧ 고정 + 특수없음 + HP×0.6', {...sp, special:false, lockToStage:true, hpFn:s=>Math.round(s*0.6)}, N);
