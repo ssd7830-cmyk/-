@@ -86,14 +86,7 @@ function spawnTopRow(g){
   }
   if(placed===0){ const c=Math.floor(Math.random()*CFG.COLS);
     g.bricks.push(makeBrick(g,c,hp)); }
-  // 매 줄마다 하미 픽업 1개 무조건 (+1, 가끔 +2)
-  let empties=[];
-  for(let c=0;c<CFG.COLS;c++) if(!g.bricks.some(b=>b.row===SPAWN_ROW&&b.col===c)) empties.push(c);
-  if(empties.length===0){ const c=Math.floor(Math.random()*CFG.COLS);
-    g.bricks=g.bricks.filter(b=>!(b.row===SPAWN_ROW&&b.col===c)); empties=[c]; }
-  const c=empties[Math.floor(Math.random()*empties.length)];
-  const amount=1;  // 픽업은 전부 +1
-  g.pickups.push({col:c,row:SPAWN_ROW,taken:false,amount});
+  // 하미 픽업 제거 — 하미 갯수 = 스테이지로 고정(매 스테이지 +1만)
 }
 
 function startRun(){
@@ -331,7 +324,6 @@ function endTurn(g){
   if(g.nextLaunchX!==null) g.launchX=clamp(g.nextLaunchX,COLW*0.3,CFG.W-COLW*0.3);
   g.bricks=g.bricks.filter(b=>!b.dead);
   g.pickups=g.pickups.filter(p=>!p.taken);
-  const cleared=g.cleared;   // 이번 턴에 깬 벽돌 수
   // 이번 턴 하나도 못 맞췄으면 콤보 초기화
   if(g.turnContacts===0){ g.combo=0; g.nextMilestone=1500; }
   g.bulk=false; g.pierce=false; g.warp=false; g.dmgMult=1;
@@ -340,13 +332,12 @@ function endTurn(g){
   for(const p of g.pickups) p.row++;
   // 데드라인 닿으면 게임오버
   if(g.bricks.some(b=>rowY(b.row)+ROWH>=CFG.DEADLINE)){ gameOver(g); return; }
-  // 다음 스테이지: 새 윗줄(숫자=스테이지) + 하미 픽업 같이 내려옴
+  // 다음 스테이지: 새 윗줄(숫자=스테이지)
   g.stage++; g.score=g.stage;
   if(g.stage>g.best){ g.best=g.stage; localStorage.setItem('hami_best',g.best); }
   spawnTopRow(g);
-  // 실력 보상: 많이 깰수록 보너스 하미 (스노우볼)
-  const bonus=Math.floor(cleared/CFG.SKILL_BONUS);
-  if(bonus>0){ g.ballCount+=bonus; addPopup(g,g.launchX,CFG.LAUNCH_Y-34,'+'+bonus+' 하미!','#ff6f00',24); }
+  // 하미 갯수 = 스테이지로 고정(픽업/실력보너스 제거, 매 스테이지 +1만)
+  g.ballCount=g.stage;
   g.state='aiming';
 }
 function emitResult(g){
