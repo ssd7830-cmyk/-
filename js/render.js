@@ -64,10 +64,30 @@ function render(){
   ctx.save();
   if(g&&g.shake>0) ctx.translate((Math.random()-0.5)*g.shake,(Math.random()-0.5)*g.shake);
 
-  // 데드라인
-  ctx.strokeStyle=THEME.dead; ctx.lineWidth=3; ctx.setLineDash([10,8]);
-  ctx.beginPath(); ctx.moveTo(0,CFG.DEADLINE); ctx.lineTo(CFG.W,CFG.DEADLINE); ctx.stroke();
-  ctx.setLineDash([]);
+  // 데드라인 — 평소엔 은은한 실선, 벽돌이 가까워지면 달아오르며 맥동+흔들림
+  {
+    let danger=0;
+    if(g){ let lowest=0; for(const b of g.bricks){ if(b.dead)continue; const yb=rowY(b.row)+ROWH; if(yb>lowest)lowest=yb; }
+      const zone=2*(ROWH+CFG.GAP);   // 두 칸 안으로 들어오면 경고 시작
+      danger=clamp((lowest-(CFG.DEADLINE-zone))/zone,0,1); }
+    const t=performance.now()/1000;
+    const pulse=danger>0?(0.5+0.5*Math.sin(t*(7+danger*13))):0;   // 위험할수록 빠르게 맥동
+    const dy=CFG.DEADLINE + (danger>0?(Math.random()-0.5)*danger*3.2:0);   // 위험 시 미세 진동
+    ctx.save();
+    // 위험 존 글로우(아래로 붉게 차오름)
+    if(danger>0){
+      const grad=ctx.createLinearGradient(0,CFG.DEADLINE,0,CFG.H);
+      grad.addColorStop(0,`rgba(229,57,53,${0.16*danger*(0.6+0.4*pulse)})`);
+      grad.addColorStop(1,'rgba(229,57,53,0)');
+      ctx.fillStyle=grad; ctx.fillRect(0,CFG.DEADLINE,CFG.W,CFG.H-CFG.DEADLINE);
+    }
+    const a=clamp(0.45 + danger*(0.4+0.4*pulse),0,1);
+    ctx.strokeStyle=`rgba(229,57,53,${a})`;
+    ctx.lineWidth=2 + danger*3*(0.5+0.5*pulse);
+    ctx.shadowColor='#e53935'; ctx.shadowBlur=danger>0?(5+danger*18*pulse):3;
+    ctx.beginPath(); ctx.moveTo(0,dy); ctx.lineTo(CFG.W,dy); ctx.stroke();
+    ctx.restore();
+  }
 
   if(g){
     // 벽돌 — 일반/강철/이동 타입별
