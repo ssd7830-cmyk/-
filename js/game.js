@@ -68,10 +68,9 @@ function pickWeakSide(col){
 // 벽돌 1개 생성 — 스테이지 20+면 일정 확률로 강철/이동
 function makeBrick(g,c,hp){
   const b={col:c,row:SPAWN_ROW,hp,maxHp:hp,type:'normal',shake:0,dead:false};
-  if(g.stage>=CFG.SPECIAL_FROM){
-    if(Math.random()<CFG.STEEL_CHANCE){ b.type='steel'; b.weakSide=pickWeakSide(c); }
-    else if(Math.random()<CFG.MOVE_CHANCE){ b.type='move'; b.mdir=Math.random()<0.5?-1:1; b.mx=0; }
-  }
+  // 강철=SPECIAL_FROM(20)부터, 이동=MOVE_FROM(10)부터
+  if(g.stage>=CFG.SPECIAL_FROM && Math.random()<CFG.STEEL_CHANCE){ b.type='steel'; b.weakSide=pickWeakSide(c); }
+  else if(g.stage>=CFG.MOVE_FROM && Math.random()<CFG.MOVE_CHANCE){ b.type='move'; b.mdir=Math.random()<0.5?-1:1; b.mx=0; }
   return b;
 }
 // 맨 윗줄(row 0) 새로 생성 — 벽돌 숫자(HP) = 현재 스테이지
