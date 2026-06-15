@@ -52,7 +52,28 @@ function newGame(){
            turnTime:0, nextLaunchX:null, turnsUsed:0, par:1,
            combo:0, comboPunch:0, comboHitT:9, turnContacts:0, cleared:0, nextMilestone:1500, slowDone:false,
            bulk:false, pierce:false, warp:false, dmgMult:1, roulette:null, pendingEffect:null, fireGap:CFG.FIRE_GAP,
-           shake:0, hitstop:0, timeScale:1 };
+           shake:0, hitstop:0, timeScale:1, celebrate:null, celebHi:0 };
+}
+
+// ===== 한 턴 연속 격파 마일스톤 (히트스톱 + 칭찬 연출) =====
+const MILE = [
+  {n:10, txt:'COMBO 10!',          color:'#ff9800', hs:0.05, shake:9,  dur:0.85, size:48},
+  {n:15, txt:'WOW!!',              color:'#f4511e', hs:0.08, shake:12, dur:0.95, size:60},
+  {n:20, txt:'UNBELIEVABLE!!!',    color:'#d500f9', hs:0.08, shake:14, dur:0.95, size:46},
+  {n:25, txt:'ㅁㅊ;;;25콤보??????',  color:'#aa00ff', hs:0.11, shake:17, dur:1.1,  size:38},
+  {n:30, txt:'개발자도 N콤보는 좀...', color:'#ff1744', hs:0.14, shake:22, dur:1.3,  size:36, dyn:true},
+];
+function triggerCeleb(g,m,n){
+  g.hitstop=Math.max(g.hitstop||0, m.hs);
+  g.shake=Math.max(g.shake, m.shake);
+  const txt = m.dyn ? m.txt.replace('N', n) : m.txt;
+  g.celebrate={text:txt, color:m.color, size:m.size, t:0, dur:m.dur};
+  if(m.n>=20){ SND.clear(); } else { SND.pick(); }   // 등급 높으면 더 화려한 소리
+}
+function checkMilestone(g){
+  for(const m of MILE){ if(m.n<30 && g.cleared>=m.n && (g.celebHi||0)<m.n){ g.celebHi=m.n; triggerCeleb(g,m,m.n); } }
+  // 30 이상은 5개마다 최고 등급 반복(숫자는 그때그때)
+  if(g.cleared>=30 && g.cleared%5===0 && (g.celebHi||0)<g.cleared){ g.celebHi=g.cleared; triggerCeleb(g,MILE[4],g.cleared); }
 }
 
 // 강철 약점 면들 (0:상 1:우 2:하 3:좌). 스테이지 오를수록 막힌 면이 늘어 어려워짐
@@ -106,7 +127,7 @@ function startRun(){
   g.aim=null; g.nextLaunchX=null; g.fireQueue=0; g.turnTime=0;
   g.combo=0; g.comboPunch=0; g.comboHitT=9; g.turnContacts=0; g.cleared=0; g.nextMilestone=1500; g.slowDone=false;
   g.bulk=false; g.pierce=false; g.warp=false; g.dmgMult=1; g.roulette=null; g.pendingEffect=null;
-  g.shake=0; g.hitstop=0; g.timeScale=1; g.launchX=CFG.W/2;
+  g.shake=0; g.hitstop=0; g.timeScale=1; g.launchX=CFG.W/2; g.celebrate=null; g.celebHi=0;
   // 스테이지 1: 한 줄로 시작 (하미 픽업 1개 같이)
   spawnTopRow(g);
   g.state='aiming';
@@ -134,7 +155,7 @@ function aimDir(g){ if(!g.aim)return null;
   return {x:dx,y:dy}; }
 function launch(g,dir){ SND.shoot(); g.state='shooting'; g.fireTimer=0;
   g.fireDir=dir; g.turnTime=0; g.nextLaunchX=null; g.turnsUsed++;
-  g.turnContacts=0; g.cleared=0; g.bulk=false; g.pierce=false; g.warp=false; g.dmgMult=1;
+  g.turnContacts=0; g.cleared=0; g.celebHi=0; g.bulk=false; g.pierce=false; g.warp=false; g.dmgMult=1;
   g.slowDone=false; g.fleeing=false;   // 콤보(g.combo)는 유지 — 턴 넘어가도 안 지움
   // 룰렛 효과 적용 (이번 턴)
   let mult=1;
@@ -257,10 +278,11 @@ function stepBall(g,ball,dt){
 function damageBrick(g,b,dmg,hx,hy){
   b.hp-=dmg; b.shake=1; b.hit=1; spawnHit(g,hx,hy);   // b.hit = 맞은 순간 펀치/플래시
   if(b.hp<=0&&!b.dead){
-    b.dead=true; g.cleared++;                 // 이번 턴 부순 수(실력보너스용)
+    b.dead=true; g.cleared++;                 // 이번 턴 부순 수
     spawnPop(g,colX(b.col)+COLW/2,rowY(b.row)+ROWH/2,false);
     SND.brk(Math.min(20,g.cleared));
     g.shake=Math.min(15,g.shake+2.4);
+    checkMilestone(g);                         // 10/15/20/25/30+ 격파 시 히트스톱+연출
     if(!g.slowDone && g.bricks.filter(x=>!x.dead).length===1){ g.timeScale=0.35; g.slowDone=true; }
   }
 }
@@ -392,12 +414,13 @@ function update(dt){
   if(g.shake>0) g.shake=Math.max(0,g.shake-dt*55);
   g.comboPunch=Math.max(0,(g.comboPunch||0)-dt*7); g.comboHitT=(g.comboHitT||0)+dt;
   g.timeScale+=(1-g.timeScale)*Math.min(1,dt*3.5);
+  if(g.celebrate){ g.celebrate.t+=dt; if(g.celebrate.t>=g.celebrate.dur) g.celebrate=null; }   // 연출은 히트스톱 중에도 진행
   if(g.roulette){ updateRoulette(g,dt); }   // 룰렛 중 물리 정지
   else if(g.hitstop>0){ g.hitstop-=dt; }
   else if(g.state==='shooting'){ stepShooting(g,dt*g.timeScale*gameSpeed); }
   else if(g.state==='gather'){ stepGather(g,dt*gameSpeed); }
-  // 이동벽돌은 룰렛/게임오버 빼고 항상 끊김없이 움직임(턴 전환 때 멈춰서 순간이동처럼 보이던 문제 해결)
-  if(!g.roulette && g.state!=='over'){
+  // 이동벽돌은 룰렛/게임오버/히트스톱 빼고 항상 끊김없이 움직임
+  if(!g.roulette && g.state!=='over' && !(g.hitstop>0)){
     moveBricks(g, g.state==='shooting' ? dt*g.timeScale*gameSpeed : dt);
   }
   for(const p of g.particles){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=620*dt; p.life-=dt; if(p.sq)p.rot+=p.vr*dt;

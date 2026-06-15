@@ -199,6 +199,26 @@ function render(){
     ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(txt,cx,cy);
   }
 
+  // 연속 격파 칭찬 연출 — 확 떴다가 잠깐 유지 후 페이드아웃("딱!" 하고 사라짐)
+  if(g && g.celebrate){
+    const c=g.celebrate, p=clamp(c.t/c.dur,0,1);
+    let scale, alpha;
+    if(p<0.12){ const k=p/0.12; scale=0.4+0.85*k; alpha=k; }          // 확 커지며 등장
+    else if(p<0.20){ const k=(p-0.12)/0.08; scale=1.25-0.25*k; alpha=1; }  // 살짝 오버슈트→정착
+    else if(p<0.58){ scale=1; alpha=1; }                              // 잠깐 유지
+    else { const k=(p-0.58)/0.42; scale=1+0.18*k; alpha=1-k; }        // 살짝 커지며 페이드아웃
+    ctx.save();
+    ctx.translate(CFG.W/2, CFG.H*0.40);
+    ctx.scale(scale,scale);
+    ctx.globalAlpha=clamp(alpha,0,1);
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font=`900 ${c.size}px sans-serif`;
+    ctx.lineWidth=7; ctx.strokeStyle='rgba(255,255,255,.95)'; ctx.strokeText(c.text,0,0);
+    ctx.fillStyle=c.color; ctx.fillText(c.text,0,0);
+    ctx.restore();
+    ctx.globalAlpha=1;
+  }
+
   // 룰렛 (화면 정지)
   if(g&&g.roulette) drawRoulette(g);
 }
