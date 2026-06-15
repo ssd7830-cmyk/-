@@ -2,9 +2,9 @@
 function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y);
   ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 
-// 강철벽돌 약점 면 표시(형광 바 + 안쪽 가리키는 삼각형). side 0:상 1:우 2:하 3:좌
+// 강철벽돌 약점 면 표시(뚫린 틈=얇은 형광 + 안쪽 가리키는 삼각형). side 0:상 1:우 2:하 3:좌
 function drawWeakSide(side,x,y,w,h){
-  const bar=5;
+  const bar=3;
   ctx.save(); ctx.fillStyle=THEME.weak; ctx.shadowColor=THEME.weakGlow; ctx.shadowBlur=7;
   if(side===0) ctx.fillRect(x,y,w,bar);
   else if(side===1) ctx.fillRect(x+w-bar,y,bar,h);
@@ -28,10 +28,22 @@ function drawBrick(g,b){
   const r=brickRect(b), sx=b.shake>0?(Math.random()-0.5)*4*b.shake:0, hit=b.hit||0;
   const x=r.x+sx, y=r.y, w=r.w, h=r.h;
   if(b.type==='steel'){
+    const weak=new Set(b.weakSides||[2]);
     ctx.fillStyle=THEME.steel; ctx.fillRect(x,y,w,h);
-    ctx.strokeStyle=THEME.steelEdge; ctx.lineWidth=3; ctx.strokeRect(x+1.5,y+1.5,w-3,h-3);
-    ctx.fillStyle=THEME.steelRivet; const pad=7;   // 리벳 4모서리
-    for(const p of [[x+pad,y+pad],[x+w-pad,y+pad],[x+pad,y+h-pad],[x+w-pad,y+h-pad]]){ ctx.beginPath(); ctx.arc(p[0],p[1],2.3,0,6.2832); ctx.fill(); }
+    // 막힌 면(데미지 X) = 두꺼운 짙은 철 장갑판 + 볼트
+    const aw=7; ctx.fillStyle=THEME.steelEdge;
+    if(!weak.has(0)) ctx.fillRect(x,y,w,aw);
+    if(!weak.has(1)) ctx.fillRect(x+w-aw,y,aw,h);
+    if(!weak.has(2)) ctx.fillRect(x,y+h-aw,w,aw);
+    if(!weak.has(3)) ctx.fillRect(x,y,aw,h);
+    ctx.fillStyle=THEME.steelRivet;
+    const bolt=(bx,by)=>{ ctx.beginPath(); ctx.arc(bx,by,2,0,6.2832); ctx.fill(); };
+    if(!weak.has(0)) bolt(x+w*0.5,y+aw*0.5);
+    if(!weak.has(1)) bolt(x+w-aw*0.5,y+h*0.5);
+    if(!weak.has(2)) bolt(x+w*0.5,y+h-aw*0.5);
+    if(!weak.has(3)) bolt(x+aw*0.5,y+h*0.5);
+    ctx.strokeStyle=THEME.steelEdge; ctx.lineWidth=1.5; ctx.strokeRect(x+0.75,y+0.75,w-1.5,h-1.5);
+    // 약점 면(데미지 O) = 철판 없이 뚫린 채 얇은 형광 틈 + 화살표
     for(const s of (b.weakSides||[2])) drawWeakSide(s,x,y,w,h);
   } else {
     ctx.fillStyle=brickColor(b.hp,g.stage); ctx.fillRect(x,y,w,h);
