@@ -17,6 +17,11 @@ const CFG = {
   PIERCE_R:2.0,       // 관통 시 공 크기 배율(크게 = 다 밀어버림)
   ROW_FILL:0.7,       // 새 줄 벽돌 생길 확률
   PICKUP_CHANCE:0.55, // 새 줄에 픽업 들어갈 확률
+  // ---- 특수벽돌 (스테이지 20부터 등장) ----
+  SPECIAL_FROM:20,    // 이 스테이지부터 강철/이동 벽돌 섞임
+  STEEL_CHANCE:0.18,  // 새 줄 벽돌 중 강철이 될 확률
+  MOVE_CHANCE:0.14,   // (강철 아닌) 벽돌 중 이동벽돌이 될 확률
+  MOVE_SPEED:42,      // 이동벽돌 가로 속도 (px/s)
 };
 const COLW=(CFG.W-CFG.GAP*(CFG.COLS+1))/CFG.COLS;
 const SPAWN_ROW=1;   // 맨 윗줄(row 0)은 항상 비우고, 한 칸 아래에서 새 줄 생성(예고 버퍼)
@@ -32,4 +37,7 @@ const THEME = {
   brick1:'#ffcc80', brick2:'#ffa726', brick3:'#fb8c00', bomb:'#ef5350',
   brickEdge:'#e65100', text:'#5d2c00',
   pickup:'#66bb6a', dead:'#e53935',
+  steel:'#607d8b', steelEdge:'#37474f', steelRivet:'#cfd8dc',  // 강철벽돌
+  weak:'#d4ff32', weakGlow:'#aeea00',                          // 약점 면(형광 라임)
+  moveEdge:'#5c6bc0',                                          // 이동벽돌 테두리
 };

@@ -2,6 +2,48 @@
 function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y);
   ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 
+// 강철벽돌 약점 면 표시(형광 바 + 안쪽 가리키는 삼각형). side 0:상 1:우 2:하 3:좌
+function drawWeakSide(side,x,y,w,h){
+  const bar=5;
+  ctx.save(); ctx.fillStyle=THEME.weak; ctx.shadowColor=THEME.weakGlow; ctx.shadowBlur=7;
+  if(side===0) ctx.fillRect(x,y,w,bar);
+  else if(side===1) ctx.fillRect(x+w-bar,y,bar,h);
+  else if(side===2) ctx.fillRect(x,y+h-bar,w,bar);
+  else ctx.fillRect(x,y,bar,h);
+  ctx.restore();
+  ctx.fillStyle=THEME.weak; const cx=x+w/2, cy=y+h/2, s=5; ctx.beginPath();
+  if(side===0){ ctx.moveTo(cx-s,y+bar+3); ctx.lineTo(cx+s,y+bar+3); ctx.lineTo(cx,y+bar+3+s); }
+  else if(side===2){ ctx.moveTo(cx-s,y+h-bar-3); ctx.lineTo(cx+s,y+h-bar-3); ctx.lineTo(cx,y+h-bar-3-s); }
+  else if(side===1){ ctx.moveTo(x+w-bar-3,cy-s); ctx.lineTo(x+w-bar-3,cy+s); ctx.lineTo(x+w-bar-3-s,cy); }
+  else { ctx.moveTo(x+bar+3,cy-s); ctx.lineTo(x+bar+3,cy+s); ctx.lineTo(x+bar+3+s,cy); }
+  ctx.closePath(); ctx.fill();
+}
+// 이동벽돌 ↔ 마크(좌우 끝 작은 삼각형, 숫자 안 가림)
+function drawMoveMark(x,y,w,h){
+  ctx.fillStyle=THEME.moveEdge; const cy=y+h/2, s=4, m=5;
+  ctx.beginPath(); ctx.moveTo(x+m+s,cy-s); ctx.lineTo(x+m+s,cy+s); ctx.lineTo(x+m,cy); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x+w-m-s,cy-s); ctx.lineTo(x+w-m-s,cy+s); ctx.lineTo(x+w-m,cy); ctx.closePath(); ctx.fill();
+}
+function drawBrick(g,b){
+  const r=brickRect(b), sx=b.shake>0?(Math.random()-0.5)*4*b.shake:0, hit=b.hit||0;
+  const x=r.x+sx, y=r.y, w=r.w, h=r.h;
+  if(b.type==='steel'){
+    ctx.fillStyle=THEME.steel; ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle=THEME.steelEdge; ctx.lineWidth=3; ctx.strokeRect(x+1.5,y+1.5,w-3,h-3);
+    ctx.fillStyle=THEME.steelRivet; const pad=7;   // 리벳 4모서리
+    for(const p of [[x+pad,y+pad],[x+w-pad,y+pad],[x+pad,y+h-pad],[x+w-pad,y+h-pad]]){ ctx.beginPath(); ctx.arc(p[0],p[1],2.3,0,6.2832); ctx.fill(); }
+    drawWeakSide(b.weakSide||0,x,y,w,h);
+  } else {
+    ctx.fillStyle=brickColor(b.hp,g.stage); ctx.fillRect(x,y,w,h);
+    if(b.type==='move'){ ctx.strokeStyle=THEME.moveEdge; ctx.lineWidth=3; ctx.strokeRect(x+1.5,y+1.5,w-3,h-3); drawMoveMark(x,y,w,h); }
+    else { ctx.strokeStyle='rgba(150,40,20,.35)'; ctx.lineWidth=1.5; ctx.strokeRect(x,y,w,h); }
+  }
+  if(hit>0){ ctx.globalAlpha=hit*0.5; ctx.fillStyle='#fff'; ctx.fillRect(x,y,w,h); ctx.globalAlpha=1; }
+  ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font=`bold ${Math.round(h*0.46*(1+hit*0.5))}px sans-serif`;
+  ctx.fillText(b.hp,x+w/2,y+h/2+1);
+}
+
 // 관통 효과: 역도 하미가 바벨로 다 밀어버림 (크게, 똑바로)
 function drawPierceHami(g,b,br){
   if(pierceReady){
@@ -28,19 +70,8 @@ function render(){
   ctx.setLineDash([]);
 
   if(g){
-    // 벽돌 — 숫자 높을수록 진한 빨강, 낮을수록 연하게
-    for(const b of g.bricks){ if(b.dead)continue;
-      const r=brickRect(b), sx=b.shake>0?(Math.random()-0.5)*4*b.shake:0, hit=b.hit||0;
-      ctx.fillStyle=brickColor(b.hp,g.stage);
-      ctx.strokeStyle='rgba(150,40,20,.35)'; ctx.lineWidth=1.5;
-      ctx.fillRect(r.x+sx,r.y,r.w,r.h); ctx.strokeRect(r.x+sx,r.y,r.w,r.h);   // 완전 네모
-      // 맞은 순간 흰 플래시
-      if(hit>0){ ctx.globalAlpha=hit*0.5; ctx.fillStyle='#fff'; ctx.fillRect(r.x+sx,r.y,r.w,r.h); ctx.globalAlpha=1; }
-      // 숫자 — 맞을 때 살짝 커졌다 줄어듦(펀치)
-      ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.font=`bold ${Math.round(r.h*0.46*(1+hit*0.5))}px sans-serif`;
-      ctx.fillText(b.hp,r.x+r.w/2+sx,r.y+r.h/2+1);
-    }
+    // 벽돌 — 일반/강철/이동 타입별
+    for(const b of g.bricks){ if(b.dead)continue; drawBrick(g,b); }
     // 픽업
     for(const p of g.pickups){ if(p.taken)continue;
       const px=colX(p.col)+COLW/2, py=rowY(p.row)+ROWH/2, amt=p.amount||1;

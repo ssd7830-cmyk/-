@@ -55,6 +55,15 @@ function newGame(){
            shake:0, hitstop:0, timeScale:1 };
 }
 
+// 벽돌 1개 생성 — 스테이지 20+면 일정 확률로 강철/이동
+function makeBrick(g,c,hp){
+  const b={col:c,row:SPAWN_ROW,hp,maxHp:hp,type:'normal',shake:0,dead:false};
+  if(g.stage>=CFG.SPECIAL_FROM){
+    if(Math.random()<CFG.STEEL_CHANCE){ b.type='steel'; b.weakSide=Math.floor(Math.random()*4); }
+    else if(Math.random()<CFG.MOVE_CHANCE){ b.type='move'; b.mdir=Math.random()<0.5?-1:1; b.mx=0; }
+  }
+  return b;
+}
 // 맨 윗줄(row 0) 새로 생성 — 벽돌 숫자(HP) = 현재 스테이지
 function spawnTopRow(g){
   const hp=Math.max(1,Math.round(g.stage*(0.85+g.stage*0.004)));   // 고단계로 갈수록 HP 가팔라짐(초반=현행 유지, 50+부터 벽). 시뮬: 중앙값 75→56, 캡300 제거
@@ -62,12 +71,12 @@ function spawnTopRow(g){
   let placed=0;
   for(let c=0;c<CFG.COLS;c++){
     if(Math.random()<fill){
-      g.bricks.push({col:c,row:SPAWN_ROW,hp,maxHp:hp,type:'normal',shake:0,dead:false});
+      g.bricks.push(makeBrick(g,c,hp));
       placed++;
     }
   }
   if(placed===0){ const c=Math.floor(Math.random()*CFG.COLS);
-    g.bricks.push({col:c,row:SPAWN_ROW,hp,maxHp:hp,type:'normal',shake:0,dead:false}); }
+    g.bricks.push(makeBrick(g,c,hp)); }
   // 매 줄마다 하미 픽업 1개 무조건 (+1, 가끔 +2)
   let empties=[];
   for(let c=0;c<CFG.COLS;c++) if(!g.bricks.some(b=>b.row===SPAWN_ROW&&b.col===c)) empties.push(c);
@@ -133,7 +142,17 @@ cv.addEventListener('touchmove',onMove,{passive:false});
 window.addEventListener('touchend',onUp,{passive:false});
 
 // ---- 물리 ----
-function brickRect(b){ return {x:colX(b.col),y:rowY(b.row),w:COLW,h:ROWH}; }
+function brickRect(b){ return {x:colX(b.col)+(b.mx||0),y:rowY(b.row),w:COLW,h:ROWH}; }
+// 약점 방향벡터 (0:상 1:우 2:하 3:좌)
+const WEAK_VEC=[[0,-1],[1,0],[0,1],[-1,0]];
+// 강철벽돌: 공이 약점 면 쪽에서 닿았는지
+function steelHitOk(b,ball){ const r=brickRect(b);
+  const cx=clamp(ball.x,r.x,r.x+r.w), cy=clamp(ball.y,r.y,r.y+r.h);
+  let nx=ball.x-cx, ny=ball.y-cy, nl=Math.hypot(nx,ny);
+  const W=WEAK_VEC[b.weakSide||0];
+  if(nl<1e-3){ const sp=Math.hypot(ball.vx,ball.vy)||1;   // 깊이 박히면 진입방향(속도 반대)으로 판정
+    return (-ball.vx/sp*W[0] + -ball.vy/sp*W[1]) > 0.4; }
+  return (nx/nl*W[0] + ny/nl*W[1]) > 0.5; }
 function circleBrick(x,y,R,b){ const r=brickRect(b);
   const cx=clamp(x,r.x,r.x+r.w), cy=clamp(y,r.y,r.y+r.h);
   return (x-cx)*(x-cx)+(y-cy)*(y-cy)<=R*R; }
@@ -194,7 +213,11 @@ function stepBall(g,ball,dt){
           } else {
             reflectOff(ball,nb,R);   // 정면이면 정상 반사
           }
-          for(const b of hitList) damageBrick(g,b,dmg,ball.x,ball.y);
+          for(const b of hitList){
+            // 강철: 약점 면에서만 데미지, 아니면 "탱!" 스파크만(튕김은 위에서 이미 처리)
+            if(b.type==='steel' && !steelHitOk(b,ball)){ b.shake=1; b.hit=0.5; SND.pop(280,0.04,0.14,3); spawnSpark(g,ball.x,ball.y); continue; }
+            damageBrick(g,b,dmg,ball.x,ball.y);
+          }
         }
       }
     }
@@ -264,6 +287,22 @@ function part(x,y,c,s,sq,lifeK){ const a=Math.random()*6.28, v=70+Math.random()*
   return {x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-60,life:(0.45+Math.random()*0.3)*(lifeK||1),c,s:s+Math.random()*2,
           sq:!!sq,rot:Math.random()*6.28,vr:(Math.random()-0.5)*14}; }
 function spawnHit(g,x,y){ SND.hit(); if(g.particles.length<160) g.particles.push(part(x,y,'#ffb300',2)); }
+// 강철 약점 아닌 면 맞을 때: 회색 스파크
+function spawnSpark(g,x,y){ if(g.particles.length<200) for(let i=0;i<4;i++) g.particles.push(part(x,y,'#cfd8dc',2,false,0.5)); }
+// 이동벽돌: 같은 줄에서 좌우로 흔들림. 벽/다른 벽돌에 막히면 반전, 양쪽 다 막히면 정지
+function moveBricks(g,dt){
+  for(const b of g.bricks){ if(b.dead||b.type!=='move')continue;
+    if(!b.mdir) b.mdir=1;
+    const nx=(b.mx||0)+CFG.MOVE_SPEED*dt*b.mdir;
+    const left=colX(b.col)+nx, right=left+COLW;
+    let blocked = (left<CFG.GAP || right>CFG.W-CFG.GAP);
+    if(!blocked){ for(const o of g.bricks){ if(o===b||o.dead||o.row!==b.row)continue;
+      const ox=colX(o.col)+(o.mx||0);
+      if(left<ox+COLW && right>ox){ blocked=true; break; } } }
+    if(blocked) b.mdir*=-1;   // 반전(이번 프레임 이동 취소 = 갇히면 제자리)
+    else b.mx=nx;
+  }
+}
 // 벽돌 깨질 때: 파편 적당히 + 살짝 길게 떨어짐 (너무 많으면 화면 도배되니 절제)
 function spawnPop(g,x,y,big){ if(g.particles.length>240) return; const n=big?12:7, cols=['#ff7043','#ff8a65','#ffab40','#f4511e','#e65100'];
   for(let i=0;i<n;i++) g.particles.push(part(x,y,cols[i%cols.length],big?4:3,true,1.5)); }
@@ -338,8 +377,9 @@ function update(dt){
   g.timeScale+=(1-g.timeScale)*Math.min(1,dt*3.5);
   if(g.roulette){ updateRoulette(g,dt); }   // 룰렛 중 물리 정지
   else if(g.hitstop>0){ g.hitstop-=dt; }
-  else if(g.state==='shooting'){ stepShooting(g,dt*g.timeScale*gameSpeed); }
+  else if(g.state==='shooting'){ stepShooting(g,dt*g.timeScale*gameSpeed); moveBricks(g,dt*g.timeScale*gameSpeed); }
   else if(g.state==='gather'){ stepGather(g,dt*gameSpeed); }
+  else if(g.state==='aiming'){ moveBricks(g,dt); }   // 조준 중에도 슬슬 움직임(타이밍 재미)
   for(const p of g.particles){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=620*dt; p.life-=dt; if(p.sq)p.rot+=p.vr*dt;
     if(p.y>CFG.DEADLINE) p.life=0; }   // 데드라인 아래로는 안 쌓이게 즉시 소멸(바닥 도배 방지)
   g.particles=g.particles.filter(p=>p.life>0);
