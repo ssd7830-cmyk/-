@@ -86,7 +86,13 @@ function spawnTopRow(g){
   }
   if(placed===0){ const c=Math.floor(Math.random()*CFG.COLS);
     g.bricks.push(makeBrick(g,c,hp)); }
-  // 하미 픽업 제거 — 하미 갯수 = 스테이지로 고정(매 스테이지 +1만)
+  // 매 줄마다 하미 픽업 1개 — 먹으면 +1 (하미 늘리는 유일한 수단)
+  let empties=[];
+  for(let c=0;c<CFG.COLS;c++) if(!g.bricks.some(b=>b.row===SPAWN_ROW&&b.col===c)) empties.push(c);
+  if(empties.length===0){ const c=Math.floor(Math.random()*CFG.COLS);
+    g.bricks=g.bricks.filter(b=>!(b.row===SPAWN_ROW&&b.col===c)); empties=[c]; }
+  const c=empties[Math.floor(Math.random()*empties.length)];
+  g.pickups.push({col:c,row:SPAWN_ROW,taken:false,amount:1});
 }
 
 function startRun(){
@@ -336,8 +342,7 @@ function endTurn(g){
   g.stage++; g.score=g.stage;
   if(g.stage>g.best){ g.best=g.stage; localStorage.setItem('hami_best',g.best); }
   spawnTopRow(g);
-  // 하미 갯수 = 스테이지로 고정(픽업/실력보너스 제거, 매 스테이지 +1만)
-  g.ballCount=g.stage;
+  // 하미는 픽업 먹어야만 늘어남(실력보너스 폭증 제거 → 50스테이지 70개 같은 과잉 방지)
   g.state='aiming';
 }
 function emitResult(g){
