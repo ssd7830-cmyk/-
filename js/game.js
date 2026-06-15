@@ -55,11 +55,19 @@ function newGame(){
            shake:0, hitstop:0, timeScale:1 };
 }
 
+// 강철 약점 방향 고르기 (0:상 1:우 2:하 3:좌)
+// 위(0)는 아래서 쏘는 구조상 거의 못 맞으니 제외, 벽에 붙은 면도 제외(틈이 없어 못 침), 아래는 가중치 높게
+function pickWeakSide(col){
+  const cand=[2,2,2];                       // 아래 = 제일 자연스러움(가중치 3)
+  if(col>0) cand.push(3);                    // 맨왼쪽 칸이 아니면 좌 가능
+  if(col<CFG.COLS-1) cand.push(1);           // 맨오른쪽 칸이 아니면 우 가능
+  return cand[Math.floor(Math.random()*cand.length)];
+}
 // 벽돌 1개 생성 — 스테이지 20+면 일정 확률로 강철/이동
 function makeBrick(g,c,hp){
   const b={col:c,row:SPAWN_ROW,hp,maxHp:hp,type:'normal',shake:0,dead:false};
   if(g.stage>=CFG.SPECIAL_FROM){
-    if(Math.random()<CFG.STEEL_CHANCE){ b.type='steel'; b.weakSide=Math.floor(Math.random()*4); }
+    if(Math.random()<CFG.STEEL_CHANCE){ b.type='steel'; b.weakSide=pickWeakSide(c); }
     else if(Math.random()<CFG.MOVE_CHANCE){ b.type='move'; b.mdir=Math.random()<0.5?-1:1; b.mx=0; }
   }
   return b;
