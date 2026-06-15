@@ -112,15 +112,19 @@ function render(){
     }
     // 공 — 관통이면 칼 든 하미(휘적휘적), 아니면 일반
     for(const b of g.balls){ if(g.pierce) drawPierceHami(g,b,br); else drawHami(b.x,b.y,br); }
-    // 바닥에 떨어져 모이는 하미들
-    if(g.landed) for(const l of g.landed) drawHami(l.x,l.y,br);
-    // 발사대 하미 — 관통 대기 중이면 역도 하미를 실제 날아갈 크기로 세워둠
+    // 바닥에 떨어져 모이는 하미들 — 관통 턴이면 날아갈 때와 같은 역도 하미로
+    if(g.landed) for(const l of g.landed){ if(g.pierce) drawPierceHami(g,l,br); else drawHami(l.x,l.y,br); }
+    // 발사대 하미 — 다음 턴 효과 반영해 "실제 날아갈 모습/크기"와 똑같이 세워둠
     if(g.state==='aiming'){
-      if(g.pendingEffect && g.pendingEffect.key==='pierce' && pierceReady){
+      const k=g.pendingEffect&&g.pendingEffect.key;
+      if(k==='pierce' && pierceReady){
         const ar=(PIERCE_IMG.naturalWidth/PIERCE_IMG.naturalHeight)||1;
         const h=CFG.BALL_R*CFG.PIERCE_R*CFG.BALL_DRAW, w=h*ar;
         ctx.drawImage(PIERCE_IMG,g.launchX-w/2,CFG.LAUNCH_Y-h/2,w,h);
-      } else drawHami(g.launchX,CFG.LAUNCH_Y,13);
+      } else {
+        // 벌크업 대기면 커진 하미, 그 외엔 일반 공과 동일 크기(BALL_R)
+        drawHami(g.launchX,CFG.LAUNCH_Y, k==='bulk'?CFG.BALL_R*CFG.BULK_R:CFG.BALL_R);
+      }
     }
     // 팝업
     for(const p of g.popups){ ctx.globalAlpha=Math.max(0,Math.min(1,p.life*1.6));
