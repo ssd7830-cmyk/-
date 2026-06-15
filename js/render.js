@@ -29,9 +29,10 @@ function drawBrick(g,b){
   const x=r.x+sx, y=r.y, w=r.w, h=r.h;
   if(b.type==='steel'){
     const weak=new Set(b.weakSides||[2]);
-    ctx.fillStyle=THEME.steel; ctx.fillRect(x,y,w,h);
-    // 막힌 면(데미지 X) = 두꺼운 짙은 철 장갑판 + 볼트
-    const aw=7; ctx.fillStyle=THEME.steelEdge;
+    ctx.fillStyle=brickColor(b.hp,g.stage); ctx.fillRect(x,y,w,h);   // 일반 벽돌색
+    ctx.strokeStyle='rgba(150,40,20,.35)'; ctx.lineWidth=1.5; ctx.strokeRect(x,y,w,h);
+    // 막힌 면(데미지 X) = 짙은 철판 + 볼트로 막아버림. 테두리 없는(뚫린) 면이 약점
+    const aw=8; ctx.fillStyle=THEME.steelEdge;
     if(!weak.has(0)) ctx.fillRect(x,y,w,aw);
     if(!weak.has(1)) ctx.fillRect(x+w-aw,y,aw,h);
     if(!weak.has(2)) ctx.fillRect(x,y+h-aw,w,aw);
@@ -42,9 +43,6 @@ function drawBrick(g,b){
     if(!weak.has(1)) bolt(x+w-aw*0.5,y+h*0.5);
     if(!weak.has(2)) bolt(x+w*0.5,y+h-aw*0.5);
     if(!weak.has(3)) bolt(x+aw*0.5,y+h*0.5);
-    ctx.strokeStyle=THEME.steelEdge; ctx.lineWidth=1.5; ctx.strokeRect(x+0.75,y+0.75,w-1.5,h-1.5);
-    // 약점 면(데미지 O) = 철판 없이 뚫린 채 얇은 형광 틈 + 화살표
-    for(const s of (b.weakSides||[2])) drawWeakSide(s,x,y,w,h);
   } else {
     ctx.fillStyle=brickColor(b.hp,g.stage); ctx.fillRect(x,y,w,h);
     if(b.type==='move'){ ctx.strokeStyle=THEME.moveEdge; ctx.lineWidth=3; ctx.strokeRect(x+1.5,y+1.5,w-3,h-3); drawMoveMark(x,y,w,h); }
