@@ -22,7 +22,8 @@ const CFG = {
   MOVE_FROM:10,       // 이동벽돌 등장 스테이지
   STEEL_CHANCE:0.18,  // 새 줄 벽돌 중 강철이 될 확률
   MOVE_CHANCE:0.14,   // (강철 아닌) 벽돌 중 이동벽돌이 될 확률
-  MOVE_SPEED:58,      // 이동벽돌 가로 속도 (px/s)
+  // 이동벽돌 가로 속도 = BASE + 스테이지*K, MAX로 상한 (스테이지 오를수록 눈에 띄게 빨라짐)
+  MOVE_SPEED_BASE:34, MOVE_SPEED_K:1.15, MOVE_SPEED_MAX:135,
 };
 const COLW=(CFG.W-CFG.GAP*(CFG.COLS+1))/CFG.COLS;
 const SPAWN_ROW=1;   // 맨 윗줄(row 0)은 항상 비우고, 한 칸 아래에서 새 줄 생성(예고 버퍼)

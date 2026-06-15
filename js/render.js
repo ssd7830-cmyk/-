@@ -32,7 +32,7 @@ function drawBrick(g,b){
     ctx.strokeStyle=THEME.steelEdge; ctx.lineWidth=3; ctx.strokeRect(x+1.5,y+1.5,w-3,h-3);
     ctx.fillStyle=THEME.steelRivet; const pad=7;   // 리벳 4모서리
     for(const p of [[x+pad,y+pad],[x+w-pad,y+pad],[x+pad,y+h-pad],[x+w-pad,y+h-pad]]){ ctx.beginPath(); ctx.arc(p[0],p[1],2.3,0,6.2832); ctx.fill(); }
-    drawWeakSide(b.weakSide||0,x,y,w,h);
+    for(const s of (b.weakSides||[2])) drawWeakSide(s,x,y,w,h);
   } else {
     ctx.fillStyle=brickColor(b.hp,g.stage); ctx.fillRect(x,y,w,h);
     if(b.type==='move'){ ctx.strokeStyle=THEME.moveEdge; ctx.lineWidth=3; ctx.strokeRect(x+1.5,y+1.5,w-3,h-3); drawMoveMark(x,y,w,h); }

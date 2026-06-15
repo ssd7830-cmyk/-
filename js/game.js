@@ -55,21 +55,24 @@ function newGame(){
            shake:0, hitstop:0, timeScale:1 };
 }
 
-// 강철 약점 방향 (0:상 1:우 2:하 3:좌) — 4방향 랜덤
-// 단, 벽에 붙은 칸은 그 벽 쪽 약점만 제외(틈이 없어 영영 못 침)
-function pickWeakSide(col){
-  const cand=[0,1,2,3].filter(s=>{
-    if(s===3 && col===0) return false;            // 맨왼쪽 칸 → 좌 약점 X
-    if(s===1 && col===CFG.COLS-1) return false;   // 맨오른쪽 칸 → 우 약점 X
-    return true;
-  });
-  return cand[Math.floor(Math.random()*cand.length)];
+// 강철 약점 면들 (0:상 1:우 2:하 3:좌). 스테이지 오를수록 막힌 면이 늘어 어려워짐
+//  ~49: 1면 막힘(약점 3) / 50~69: 2면 막힘(약점 2) / 70+: 3면 막힘(약점 1)
+// 약점은 항상 "칠 수 있는 면"(벽에 안 붙은)에 배치, 벽에 붙은 면은 자동으로 막힘
+function pickWeakSides(col,stage){
+  const blocked = stage>=70?3 : stage>=50?2 : 1;
+  const weakN = 4-blocked;                         // 약점 면 개수(1~3)
+  const open=[0,2];                                // 상·하는 항상 칠 수 있음
+  if(col>0) open.push(3);                          // 맨왼쪽 아니면 좌도 가능
+  if(col<CFG.COLS-1) open.push(1);                 // 맨오른쪽 아니면 우도 가능
+  for(let i=open.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=open[i];open[i]=open[j];open[j]=t; }
+  const weak=open.slice(0,Math.min(weakN,open.length));
+  return weak.length?weak:[2];
 }
 // 벽돌 1개 생성 — 스테이지 20+면 일정 확률로 강철/이동
 function makeBrick(g,c,hp){
   const b={col:c,row:SPAWN_ROW,hp,maxHp:hp,type:'normal',shake:0,dead:false};
   // 강철=SPECIAL_FROM(20)부터, 이동=MOVE_FROM(10)부터
-  if(g.stage>=CFG.SPECIAL_FROM && Math.random()<CFG.STEEL_CHANCE){ b.type='steel'; b.weakSide=pickWeakSide(c); }
+  if(g.stage>=CFG.SPECIAL_FROM && Math.random()<CFG.STEEL_CHANCE){ b.type='steel'; b.weakSides=pickWeakSides(c,g.stage); }
   else if(g.stage>=CFG.MOVE_FROM && Math.random()<CFG.MOVE_CHANCE){ b.type='move'; b.mdir=Math.random()<0.5?-1:1; b.mx=0; }
   return b;
 }
@@ -153,14 +156,17 @@ window.addEventListener('touchend',onUp,{passive:false});
 function brickRect(b){ return {x:colX(b.col)+(b.mx||0),y:rowY(b.row),w:COLW,h:ROWH}; }
 // 약점 방향벡터 (0:상 1:우 2:하 3:좌)
 const WEAK_VEC=[[0,-1],[1,0],[0,1],[-1,0]];
-// 강철벽돌: 공이 약점 면 쪽에서 닿았는지
+// 강철벽돌: 공이 약점 면(여러 개 중 하나) 쪽에서 닿았는지
 function steelHitOk(b,ball){ const r=brickRect(b);
   const cx=clamp(ball.x,r.x,r.x+r.w), cy=clamp(ball.y,r.y,r.y+r.h);
   let nx=ball.x-cx, ny=ball.y-cy, nl=Math.hypot(nx,ny);
-  const W=WEAK_VEC[b.weakSide||0];
-  if(nl<1e-3){ const sp=Math.hypot(ball.vx,ball.vy)||1;   // 깊이 박히면 진입방향(속도 반대)으로 판정
-    return (-ball.vx/sp*W[0] + -ball.vy/sp*W[1]) > 0.4; }
-  return (nx/nl*W[0] + ny/nl*W[1]) > 0.5; }
+  const sides=b.weakSides||[2];
+  const sp=Math.hypot(ball.vx,ball.vy)||1;
+  for(const s of sides){ const W=WEAK_VEC[s];
+    if(nl<1e-3){ if((-ball.vx/sp*W[0] + -ball.vy/sp*W[1]) > 0.4) return true; }   // 깊이 박히면 진입방향
+    else if((nx/nl*W[0] + ny/nl*W[1]) > 0.5) return true;
+  }
+  return false; }
 function circleBrick(x,y,R,b){ const r=brickRect(b);
   const cx=clamp(x,r.x,r.x+r.w), cy=clamp(y,r.y,r.y+r.h);
   return (x-cx)*(x-cx)+(y-cy)*(y-cy)<=R*R; }
@@ -224,6 +230,11 @@ function stepBall(g,ball,dt){
           for(const b of hitList){
             // 강철: 약점 면에서만 데미지, 아니면 "탱!" 스파크만(튕김은 위에서 이미 처리)
             if(b.type==='steel' && !steelHitOk(b,ball)){ b.shake=1; b.hit=0.5; SND.pop(280,0.04,0.14,3); spawnSpark(g,ball.x,ball.y); continue; }
+            // 같은 공이 같은 벽돌을 짧은 시간에 중복 타격 방지(이동벽돌이 공을 밀어 데미지 누적되던 버그)
+            const id=b.col+'_'+b.row;
+            if(!ball.cd) ball.cd={};
+            if(ball.cd[id]!=null && g.turnTime-ball.cd[id]<0.12) continue;
+            ball.cd[id]=g.turnTime;
             damageBrick(g,b,dmg,ball.x,ball.y);
           }
         }
@@ -299,9 +310,10 @@ function spawnHit(g,x,y){ SND.hit(); if(g.particles.length<160) g.particles.push
 function spawnSpark(g,x,y){ if(g.particles.length<200) for(let i=0;i<4;i++) g.particles.push(part(x,y,'#cfd8dc',2,false,0.5)); }
 // 이동벽돌: 같은 줄에서 좌우로 흔들림. 벽/다른 벽돌에 막히면 반전, 양쪽 다 막히면 정지
 function moveBricks(g,dt){
+  const speed=Math.min(CFG.MOVE_SPEED_MAX, CFG.MOVE_SPEED_BASE+g.stage*CFG.MOVE_SPEED_K);   // 스테이지 비례
   for(const b of g.bricks){ if(b.dead||b.type!=='move')continue;
     if(!b.mdir) b.mdir=1;
-    const nx=(b.mx||0)+CFG.MOVE_SPEED*dt*b.mdir;
+    const nx=(b.mx||0)+speed*dt*b.mdir;
     const left=colX(b.col)+nx, right=left+COLW;
     let blocked = (left<CFG.GAP || right>CFG.W-CFG.GAP);
     if(!blocked){ for(const o of g.bricks){ if(o===b||o.dead||o.row!==b.row)continue;
