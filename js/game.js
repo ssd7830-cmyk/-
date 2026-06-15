@@ -55,12 +55,14 @@ function newGame(){
            shake:0, hitstop:0, timeScale:1 };
 }
 
-// 강철 약점 방향 고르기 (0:상 1:우 2:하 3:좌)
-// 위(0)는 아래서 쏘는 구조상 거의 못 맞으니 제외, 벽에 붙은 면도 제외(틈이 없어 못 침), 아래는 가중치 높게
+// 강철 약점 방향 (0:상 1:우 2:하 3:좌) — 4방향 랜덤
+// 단, 벽에 붙은 칸은 그 벽 쪽 약점만 제외(틈이 없어 영영 못 침)
 function pickWeakSide(col){
-  const cand=[2,2,2];                       // 아래 = 제일 자연스러움(가중치 3)
-  if(col>0) cand.push(3);                    // 맨왼쪽 칸이 아니면 좌 가능
-  if(col<CFG.COLS-1) cand.push(1);           // 맨오른쪽 칸이 아니면 우 가능
+  const cand=[0,1,2,3].filter(s=>{
+    if(s===3 && col===0) return false;            // 맨왼쪽 칸 → 좌 약점 X
+    if(s===1 && col===CFG.COLS-1) return false;   // 맨오른쪽 칸 → 우 약점 X
+    return true;
+  });
   return cand[Math.floor(Math.random()*cand.length)];
 }
 // 벽돌 1개 생성 — 스테이지 20+면 일정 확률로 강철/이동
