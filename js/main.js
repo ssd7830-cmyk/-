@@ -20,10 +20,14 @@ let soundOn=true;
 function applySound(){ SND.muted=!soundOn; SND.master=soundOn?4.5:0;
   if(SND.bus) SND.bus.gain.value=SND.master; muteBtn.textContent=soundOn?'🔊':'🔇'; }
 muteBtn.addEventListener('click',()=>{ SND.init(); soundOn=!soundOn; applySound(); });
-// 폰: 첫 상호작용에서 오디오 확실히 깨움
-const _unlockAudio=()=>{ SND.init(); applySound(); };
-window.addEventListener('pointerdown',_unlockAudio,{once:true});
-window.addEventListener('touchend',_unlockAudio,{once:true});
+// 폰/PC: 상호작용마다 오디오 깨움(ctx가 running 되면 리스너 해제)
+function _unlockAudio(){
+  SND.init(); applySound();
+  if(SND.ctx && SND.ctx.state==='running'){
+    ['pointerdown','touchend','click','keydown'].forEach(ev=>window.removeEventListener(ev,_unlockAudio));
+  }
+}
+['pointerdown','touchend','click','keydown'].forEach(ev=>window.addEventListener(ev,_unlockAudio));
 
 // ===== [임시 테스트] 키 1~4 = 해당 룰렛 강제, R = 랜덤 룰렛 (나중에 지울 것) =====
 window.addEventListener('keydown',e=>{

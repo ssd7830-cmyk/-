@@ -12,11 +12,16 @@ const SND = {
     if(this.ctx&&!this.noise){ const n=Math.floor(this.ctx.sampleRate*0.3);
       const buf=this.ctx.createBuffer(1,n,this.ctx.sampleRate), d=buf.getChannelData(0);
       for(let i=0;i<n;i++) d[i]=Math.random()*2-1; this.noise=buf; }
-    if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume();
+    this._kick();
   },
+  // ctx가 suspended/interrupted면 깨운다(제스처 핸들러 안에서 호출돼야 효과)
+  _kick(){ if(this.ctx&&this.ctx.state!=='running'){ try{ this.ctx.resume(); }catch(e){} } },
   // 필터된 노이즈 = 퍼커시브 "톡/퍽"
   pop(freq,dur,vol,q){
-    if(this.muted||!this.ctx||!this.noise) return;
+    if(this.muted) return;
+    if(!this.ctx||!this.noise) this.init();
+    if(!this.ctx||!this.noise) return;
+    this._kick();
     const t=this.ctx.currentTime;
     const s=this.ctx.createBufferSource(); s.buffer=this.noise;
     const bp=this.ctx.createBiquadFilter(); bp.type='bandpass';
@@ -27,7 +32,10 @@ const SND = {
   },
   // 부드러운 톤 (코인/팡파레)
   beep(freq,dur,vol,type){
-    if(this.muted||!this.ctx) return;
+    if(this.muted) return;
+    if(!this.ctx) this.init();
+    if(!this.ctx) return;
+    this._kick();
     const t=this.ctx.currentTime;
     const o=this.ctx.createOscillator(), g=this.ctx.createGain();
     o.type=type||'sine'; o.frequency.value=freq;
