@@ -30,7 +30,8 @@ function drawBrick(g,b){
   if(b.type==='steel'){
     const weak=new Set(b.weakSides||[2]);
     ctx.fillStyle=brickColor(b.hp,g.stage); ctx.fillRect(x,y,w,h);   // 일반 벽돌색
-    ctx.strokeStyle='rgba(150,40,20,.35)'; ctx.lineWidth=1.5; ctx.strokeRect(x,y,w,h);
+    // 강철은 항상 철 테두리로 감싸 구분(막힌 면이 벽·옆벽돌에 가려져도 강철인 걸 알게)
+    ctx.strokeStyle=THEME.steelEdge; ctx.lineWidth=2.5; ctx.strokeRect(x+1.25,y+1.25,w-2.5,h-2.5);
     // 막힌 면(데미지 X) = 짙은 철판 + 볼트로 막아버림. 테두리 없는(뚫린) 면이 약점
     const aw=8; ctx.fillStyle=THEME.steelEdge;
     if(!weak.has(0)) ctx.fillRect(x,y,w,aw);

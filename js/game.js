@@ -156,7 +156,7 @@ function aimDir(g){ if(!g.aim)return null;
 function launch(g,dir){ SND.shoot(); g.state='shooting'; g.fireTimer=0;
   g.fireDir=dir; g.turnTime=0; g.nextLaunchX=null; g.turnsUsed++;
   g.turnContacts=0; g.cleared=0; g.celebHi=0; g.bulk=false; g.pierce=false; g.warp=false; g.dmgMult=1;
-  g.slowDone=false; g.fleeing=false;   // 콤보(g.combo)는 유지 — 턴 넘어가도 안 지움
+  g.slowDone=false; g.fleeing=false; g.rouletteShown=false;   // 콤보(g.combo)는 유지 — 턴 넘어가도 안 지움 / 룰렛은 한 턴에 1번만
   // 룰렛 효과 적용 (이번 턴)
   let mult=1;
   if(g.pendingEffect){ const k=g.pendingEffect.key, e=g.pendingEffect; g.pendingEffect=null;
@@ -231,7 +231,7 @@ function stepBall(g,ball,dt){
       if(hitList){
         g.combo++; g.turnContacts++;                 // 콤보 = 부딪힌 횟수(누적)
         g.comboPunch=1; g.comboHitT=0;                // 리듬게임식 펀치
-        if(g.combo>=g.nextMilestone) triggerRoulette(g);
+        if(!g.rouletteShown && g.combo>=g.nextMilestone) triggerRoulette(g);
         const dmg=(g.bulk?3:1)*(g.dmgMult||1);   // 벌크업 = 데미지 3배
         if(g.pierce){ for(const b of hitList) damageBrick(g,b,dmg+1,ball.x,ball.y); }   // 관통: 안 튕기고 뚫음
         else {
@@ -304,8 +304,12 @@ function destroyRandomBricks(g,n){
   g.shake=16;
 }
 function triggerRoulette(g){
-  if(g.roulette) return;
-  const hit=g.nextMilestone; g.nextMilestone+=2000;
+  if(g.roulette||g.rouletteShown) return;
+  g.rouletteShown=true;                                  // 이번 턴 룰렛 사용 → 같은 턴 재발동 차단
+  const hit=g.nextMilestone;
+  // 다음 마일스톤은 "지금 콤보 + 간격"으로. 이번 턴에 이미 쌓인 초과분을 건너뛰어 연속 발동 방지.
+  // 간격은 스테이지가 오를수록 넓혀서(한 턴 콤보량이 커지므로) 너무 자주 안 뜨게.
+  g.nextMilestone=g.combo+2000+g.stage*80;
   g.roulette={phase:'intro',t:0,chosen:Math.floor(Math.random()*EFFECTS.length),milestone:hit,tickSeg:-1};
   SND.bulk();
 }
