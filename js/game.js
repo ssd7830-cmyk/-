@@ -191,11 +191,11 @@ function stepBall(g,ball,dt){
       let wall=false;
       if(ball.x<R){ball.x=R;ball.vx=Math.abs(ball.vx);wall=true;}
       else if(ball.x>CFG.W-R){ball.x=CFG.W-R;ball.vx=-Math.abs(ball.vx);wall=true;}
-      if(wall && g.pierce && (++ball.wb)>1){ ball.active=false; if(g.nextLaunchX===null)g.nextLaunchX=ball.x;
+      if(wall && g.pierce && (++ball.wb)>2){ ball.active=false; if(g.nextLaunchX===null)g.nextLaunchX=ball.x;
         g.landed.push({x:clamp(ball.x,R,CFG.W-R),y:CFG.LAUNCH_Y}); return; }
     }
     if(ball.y<HEADER_H+R){ ball.y=HEADER_H+R; ball.vy=Math.abs(ball.vy);   // 윗벽=헤더선
-      if(g.pierce && (++ball.wb)>1){ ball.active=false; if(g.nextLaunchX===null)g.nextLaunchX=ball.x;
+      if(g.pierce && (++ball.wb)>2){ ball.active=false; if(g.nextLaunchX===null)g.nextLaunchX=ball.x;
         g.landed.push({x:clamp(ball.x,R,CFG.W-R),y:CFG.LAUNCH_Y}); return; } }
     if(ball.y>CFG.LAUNCH_Y){ ball.active=false; if(g.nextLaunchX===null)g.nextLaunchX=ball.x;
       g.landed.push({x:clamp(ball.x,R,CFG.W-R),y:CFG.LAUNCH_Y}); return; }   // 떨어진 자리에 깔아둠
@@ -207,7 +207,7 @@ function stepBall(g,ball,dt){
         g.combo++; g.turnContacts++;                 // 콤보 = 부딪힌 횟수(누적)
         g.comboPunch=1; g.comboHitT=0;                // 리듬게임식 펀치
         if(g.combo>=g.nextMilestone) triggerRoulette(g);
-        const dmg=(g.bulk?2:1)*(g.dmgMult||1);
+        const dmg=(g.bulk?3:1)*(g.dmgMult||1);   // 벌크업 = 데미지 3배
         if(g.pierce){ for(const b of hitList) damageBrick(g,b,dmg+1,ball.x,ball.y); }   // 관통: 안 튕기고 뚫음
         else {
           // 가장 가까운 벽돌 + 충돌점 찾기 (닿은 벽돌은 전부 깎음 → 이음새 명중 시 동시타)
@@ -259,10 +259,10 @@ function damageBrick(g,b,dmg,hx,hy){
 // ===== 룰렛 벌크업 (다음 턴 적용) =====
 // 전부 "이번 턴만" 효과 (영구 보상 없음 = 눈덩이 방지)
 const EFFECTS = [
-  { key:'mult',  label:'증식',   desc:'하미 2배!',            emoji:'✨', color:'#ab47bc' },
-  { key:'bulk',  label:'벌크업', desc:'커지고 뎀 2배',        emoji:'💪', color:'#ff9800' },
-  { key:'warp',  label:'워프',   desc:'좌우 벽 통과!',        emoji:'🌀', color:'#42a5f5' },
-  { key:'pierce',label:'관통',   desc:'다 뚫음 (벽은 1번만 튕김)', emoji:'🗡️', color:'#26a69a' },
+  { key:'mult',  label:'증식',   desc:'하미 수 2배로 발사!',       emoji:'✨', color:'#ab47bc' },
+  { key:'bulk',  label:'벌크업', desc:'하미 거대화 + 데미지 3배!', emoji:'💪', color:'#ff9800' },
+  { key:'warp',  label:'워프',   desc:'좌우 벽을 뚫고 반대편으로!', emoji:'🌀', color:'#42a5f5' },
+  { key:'pierce',label:'관통',   desc:'벽돌 다 뚫음 (벽 2번 튕김)', emoji:'🗡️', color:'#26a69a' },
 ];
 const RL = { INTRO:1.1, SPIN:3.2, RESULT:1.6 };  // 단계별 시간
 function destroyRandomBricks(g,n){
