@@ -382,9 +382,12 @@ function update(dt){
   g.timeScale+=(1-g.timeScale)*Math.min(1,dt*3.5);
   if(g.roulette){ updateRoulette(g,dt); }   // 룰렛 중 물리 정지
   else if(g.hitstop>0){ g.hitstop-=dt; }
-  else if(g.state==='shooting'){ stepShooting(g,dt*g.timeScale*gameSpeed); moveBricks(g,dt*g.timeScale*gameSpeed); }
+  else if(g.state==='shooting'){ stepShooting(g,dt*g.timeScale*gameSpeed); }
   else if(g.state==='gather'){ stepGather(g,dt*gameSpeed); }
-  else if(g.state==='aiming'){ moveBricks(g,dt); }   // 조준 중에도 슬슬 움직임(타이밍 재미)
+  // 이동벽돌은 룰렛/게임오버 빼고 항상 끊김없이 움직임(턴 전환 때 멈춰서 순간이동처럼 보이던 문제 해결)
+  if(!g.roulette && g.state!=='over'){
+    moveBricks(g, g.state==='shooting' ? dt*g.timeScale*gameSpeed : dt);
+  }
   for(const p of g.particles){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=620*dt; p.life-=dt; if(p.sq)p.rot+=p.vr*dt;
     if(p.y>CFG.DEADLINE) p.life=0; }   // 데드라인 아래로는 안 쌓이게 즉시 소멸(바닥 도배 방지)
   g.particles=g.particles.filter(p=>p.life>0);
