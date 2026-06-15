@@ -62,12 +62,16 @@ function render(){
       ctx.globalAlpha=1; const last=pts[pts.length-1];
       ctx.strokeStyle='rgba(229,57,53,.9)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(last.x,last.y,11,0,6.2832); ctx.stroke();
     }}
-    // 공 트레일(잔상) → 역동적. 공 많으면 끔(폰 렉 방지, 공무리 자체가 화려함)
+    // 공 트레일(잔상) → 역동적. 공 많아지면 끄지 말고 꼬리만 짧게(총 그리는 양 일정 = 렉X, 깜빡임X)
     const br=g.bulk?CFG.BALL_R*CFG.BULK_R:(g.pierce?CFG.BALL_R*CFG.PIERCE_R:CFG.BALL_R);
-    if(g.balls.length<=60){
+    {
+      const nb=g.balls.length||1;
+      // 전체 세그먼트 ~3000개로 캡: 공 적으면 긴 꼬리, 많으면 짧은 꼬리
+      const maxSeg=nb<=50?60:Math.max(5,Math.floor(3000/nb));
       ctx.lineCap='round';
       for(const b of g.balls){ const tr=b.trail; if(!tr||tr.length<2)continue;
-        for(let i=1;i<tr.length;i++){ const a=i/tr.length;
+        const start=Math.max(1,tr.length-maxSeg);
+        for(let i=start;i<tr.length;i++){ const a=(i-start+1)/(tr.length-start+1);
           const al=0.025+a*0.12;
           ctx.strokeStyle=g.bulk?`rgba(190,150,225,${al})`:`rgba(150,195,255,${al})`;
           ctx.lineWidth=br*2*a;

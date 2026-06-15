@@ -57,7 +57,7 @@ function newGame(){
 
 // 맨 윗줄(row 0) 새로 생성 — 벽돌 숫자(HP) = 현재 스테이지
 function spawnTopRow(g){
-  const hp=Math.max(1,Math.round(g.stage*0.85));   // HP를 스테이지보다 약간 완만하게 → 잘하면 뚫림(시뮬 튜닝)
+  const hp=Math.max(1,Math.round(g.stage*(0.85+g.stage*0.004)));   // 고단계로 갈수록 HP 가팔라짐(초반=현행 유지, 50+부터 벽). 시뮬: 중앙값 75→56, 캡300 제거
   const fill=Math.min(0.42+g.stage*0.006,0.72);  // 벽돌 개수 살짝 올림(난이도↑)
   let placed=0;
   for(let c=0;c<CFG.COLS;c++){

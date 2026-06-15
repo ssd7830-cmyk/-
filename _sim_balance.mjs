@@ -3,16 +3,16 @@
 
 // ===== 상수 (config.js와 동일) =====
 const CFG = {
-  W:540, H:655, COLS:7, GAP:6,
-  TOP:115, DEADLINE:605, LAUNCH_Y:605,
-  BALL_R:12, BALL_DRAW:3.2, BALL_SPEED:600,
-  FIRE_GAP:0.07, HURRY_AFTER:4.0, MAX_TURN:7, MIN_VY:130,
+  W:540, H:750, COLS:7, GAP:6,
+  TOP:130, DEADLINE:680, LAUNCH_Y:680,
+  BALL_R:12, BALL_DRAW:2.5, BALL_SPEED:600,
+  FIRE_GAP:0.07, HURRY_AFTER:10, MAX_TURN:7, MIN_VY:130,
   SKILL_BONUS:6, MAX_FIRE_TIME:2.4, WIN_STAGE:100,
   BULK_R:1.55, ROW_FILL:0.7, PICKUP_CHANCE:0.55,
 };
 const COLW=(CFG.W-CFG.GAP*(CFG.COLS+1))/CFG.COLS;
 const SPAWN_ROW=1;
-const ROWH=44, HEADER_H=100;
+const ROWH=46, HEADER_H=104;
 const colX=c=>CFG.GAP+c*(COLW+CFG.GAP);
 const rowY=r=>CFG.TOP+r*(ROWH+CFG.GAP);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -218,7 +218,8 @@ function run(label,opts,N){
 }
 
 const N=parseInt(process.argv[2]||'400');
-const base={roulette:true};   // 신 메커니즘(공느림/윗줄버퍼/동시타) 반영된 상태
-run('×0.83', {...base, hpScale:0.83}, N);
-run('×0.85', {...base, hpScale:0.85}, N);
-run('×0.87', {...base, hpScale:0.87}, N);
+const base={roulette:true};
+// 현재 = 선형 ×0.85. 후보 = 고단계로 갈수록 가팔라지는 곡선 + 줄 밀도↑
+run('현재 선형 ×0.85', {...base, hpFn:s=>Math.round(s*0.85)}, N);
+run('곡선 0.85+s*0.004', {...base, hpFn:s=>Math.round(s*(0.85+s*0.004))}, N);
+run('곡선+밀도 0.86', {...base, hpFn:s=>Math.round(s*(0.85+s*0.005)), fillBase:0.45, fillSlope:0.008, fillCap:0.86}, N);
