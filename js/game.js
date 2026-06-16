@@ -261,6 +261,8 @@ function stepBall(g,ball,dt){
         }
       }
     }
+    // 벽돌 반사 보정으로 벽 밖으로 살짝 삐져나오는 것 방지(위치만 클램프, 속도는 이미 안쪽)
+    if(!g.warp){ if(ball.x<R)ball.x=R; else if(ball.x>CFG.W-R)ball.x=CFG.W-R; }
     for(const p of g.pickups){ if(p.taken)continue;
       const px=colX(p.col)+COLW/2, py=rowY(p.row)+ROWH/2;
       if(Math.hypot(ball.x-px,ball.y-py)<R+16){ p.taken=true; g.ballCount+=(p.amount||1);
@@ -446,6 +448,12 @@ function stepShooting(g,dt){
       const sp=Math.hypot(b.vx,b.vy)||1, t=CFG.BALL_SPEED*boost;
       b.vx=b.vx/sp*t; b.vy=b.vy/sp*t;                 // 속도 부스트
     }
+  }
+  // 그래도 안 돌아오면(끼임 방지) 탈출모드: 벽돌 통과시키고 아래로 강제 흘려보냄 → 무한 튕김 소프트락 차단
+  if(g.fireQueue===0 && !g.fleeing && g.turnTime>CFG.HURRY_AFTER+CFG.MAX_TURN){
+    g.fleeing=true;
+    for(const b of g.balls){ if(!b.active)continue;
+      b.vx*=0.3; b.vy=Math.abs(b.vy)+CFG.BALL_SPEED; }
   }
   for(const b of g.balls) if(b.active){ stepBall(g,b,dt);
     if(b.active){ b.trail.push({x:b.x,y:b.y}); if(b.trail.length>60) b.trail.shift(); } }
