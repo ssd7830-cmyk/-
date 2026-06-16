@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>하미디펜스 — Prototype 0.0.1</title>
+  <link rel="stylesheet" href="src/style.css" />
+</head>
+<body>
+  <div id="game">
+    <!-- 상단 HUD + 카드바 -->
+    <header id="hud">
+      <div class="hud-left">
+        <div id="hami-face" class="hami" title="하미">
+          <div class="hami-cheek left"></div>
+          <div class="hami-cheek right"></div>
+          <div class="hami-eye left"></div>
+          <div class="hami-eye right"></div>
+          <div class="hami-mouth"></div>
+          <div class="hami-arm left"></div>
+          <div class="hami-arm right"></div>
+        </div>
+        <div class="hud-title">
+          <h1>하미디펜스</h1>
+          <div class="rice-counter">
+            <span class="rice-icon">🌾</span>
+            <span id="rice-amount">0</span>
+            <span class="rice-label">쌀알</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="card-bar" class="card-bar"><!-- 카드 JS 생성 --></div>
+
+      <div class="hud-right">
+        <button id="restart-top" class="btn-ghost" title="다시 시작">↻</button>
+      </div>
+    </header>
+
+    <!-- 중앙 전장 -->
+    <main id="stage">
+      <div id="warehouse" class="warehouse">
+        <div class="warehouse-roof"></div>
+        <div class="warehouse-body">쌀<br />창고</div>
+      </div>
+
+      <div id="field-wrap" class="field-wrap">
+        <div id="grid" class="grid"><!-- 셀 JS 생성 --></div>
+        <div id="entities" class="entities"><!-- 적/투사체/유닛/파티클 --></div>
+      </div>
+
+      <div id="forest" class="forest" aria-hidden="true"></div>
+    </main>
+
+    <!-- 하단 정보 -->
+    <footer id="info">
+      <div id="hami-bubble" class="bubble">쌀 창고를 지켜야 해요!</div>
+      <div class="wave-info">
+        <span class="wave-label">웨이브</span>
+        <div class="wave-bar"><div id="wave-fill" class="wave-fill"></div></div>
+        <span id="wave-text">0 / 0</span>
+      </div>
+    </footer>
+
+    <!-- 결과 오버레이 -->
+    <div id="overlay" class="overlay hidden">
+      <div class="overlay-card">
+        <div id="overlay-hami" class="hami big">
+          <div class="hami-cheek left"></div>
+          <div class="hami-cheek right"></div>
+          <div class="hami-eye left"></div>
+          <div class="hami-eye right"></div>
+          <div class="hami-mouth"></div>
+        </div>
+        <h2 id="overlay-title">결과</h2>
+        <p id="overlay-msg"></p>
+        <button id="restart-btn" class="btn-main">다시 시작</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/data.js"></script>
+  <script src="src/game.js"></script>
+</body>
+</html>
